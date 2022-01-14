@@ -1,0 +1,44 @@
+from math import acos, degrees
+
+
+def slice_when(predicate, iterable):
+    i, x, size = 0, 0, len(iterable)
+    while i < size - 1:
+        if predicate(iterable[i], iterable[i + 1]):
+            yield iterable[x:i + 1]
+            x = i + 1
+        i += 1
+    yield iterable[x:size]
+
+
+def dot(vA, vB):
+    """
+    Return the dot product between 2 vectors
+    """
+    return vA[0] * vB[0] + vA[1] * vB[1]
+
+
+def angle(lineA, lineB):
+    """
+    Return the angle between 2 linestrings
+    """
+
+    # Get nicer vector form
+    vA = [(lineA[0][0] - lineA[1][0]), (lineA[0][1] - lineA[1][1])]
+    vB = [(lineB[0][0] - lineB[1][0]), (lineB[0][1] - lineB[1][1])]
+    # Get dot prod
+    dot_prod = dot(vA, vB)
+    # Get magnitudes
+    magA = dot(vA, vA) ** 0.5
+    magB = dot(vB, vB) ** 0.5
+    # Get cosine value
+    cos_ = dot_prod / magA / magB
+    # Get angle in radians and then convert to degrees
+    angle = acos(dot_prod / magB / magA)
+    # Basically doing angle <- angle mod 360
+    ang_deg = degrees(angle) % 360
+
+    if ang_deg - 180 >= 0:
+        return 360 - ang_deg
+
+    return ang_deg

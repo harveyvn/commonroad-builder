@@ -60,6 +60,6 @@ def exec_road_from_scenarion(dir_path, dataset_name=None, output_to=None):
 
 
 if __name__ == '__main__':
-    road_data = exec_road_from_scenarion("cases/06")
+    road_data = exec_road_from_scenarion("cases/01")
     lane_analyzer = categorize_roadlane(road_data)
     lane_analyzer.run()

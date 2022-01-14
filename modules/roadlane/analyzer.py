@@ -3,16 +3,16 @@ import imutils
 import numpy as np
 import matplotlib.pyplot as plt
 from math import floor, ceil
-from shapely.geometry import Polygon
+from .laneline import Laneline
 from modules import slice_when, angle
+from modules.models import Road
 
 
 class Analyzer:
-    def __init__(self, poly: Polygon, image, baseline, roads):
-        self.poly = poly
+    def __init__(self, image, lanelines: [Laneline], road: Road):
         self.image = image
-        self.baseline = baseline
-        self.roads = roads
+        self.lanelines = lanelines
+        self.road = road
 
     def run(self):
         """
@@ -24,14 +24,14 @@ class Analyzer:
         ax[0, 0].title.set_text("Step 01")
         ax[0, 0].imshow(self.image, cmap='gray')
         colors = ["red", "green", "blue", "purple"]
-        for i, road in enumerate(self.roads):
-            ax[0, 0].plot([p[0] for p in road.coords],
-                          [p[1] for p in road.coords],
+        for i, line in enumerate(self.lanelines):
+            ax[0, 0].plot([p[0] for p in line.coords],
+                          [p[1] for p in line.coords],
                           color=colors[i])
         axs.append(ax[0, 0])
 
         ax[0, 1].title.set_text("Step 02")
-        xs, ys = self.poly.exterior.xy
+        xs, ys = self.road.poly.exterior.xy
         # Debug:
         ax[0, 1].imshow(self.image, cmap='gray')
         ax[0, 1].plot(xs, ys, c="red")
@@ -64,7 +64,7 @@ class Analyzer:
 
         # Rotate the crop image
         # Find the angle for rotation
-        lineA = [self.baseline[0], self.baseline[-1]]
+        lineA = [list(self.road.mid_line.coords)[0], list(self.road.mid_line.coords)[-1]]
         lineB = [[0, 0], [1, 0]]
         difference = 90 - angle(lineA, lineB)
         # Rotate our image by certain degrees around the center of the image

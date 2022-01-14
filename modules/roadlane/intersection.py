@@ -2,7 +2,7 @@ from . import RoadLane
 from .laneline import Laneline
 from .analyzer import Analyzer
 from math import ceil
-from shapely.geometry import Polygon
+from modules.models import Road
 
 
 class IntersectionLane(RoadLane):
@@ -20,8 +20,11 @@ class IntersectionLane(RoadLane):
             mid_line = laneline.get_linestring()
             left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
             right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
-            poly = Polygon([*list(left_boundary.coords), *list(right_boundary.coords)])
-            analyzer = Analyzer(poly, image, laneline.coords, baselines)
+            road = Road(road_id=idx,
+                        mid_line=mid_line,
+                        left_boundary=left_boundary,
+                        right_boundary=right_boundary)
+            analyzer = Analyzer(image, baselines, road)
             analyzer.run()
 
         return True

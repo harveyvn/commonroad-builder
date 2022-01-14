@@ -3,9 +3,9 @@ import imutils
 import numpy as np
 import matplotlib.pyplot as plt
 from math import floor, ceil
-from .laneline import Laneline
 from modules import slice_when, angle
-from modules.models import Road
+from .road import Road
+from modules.roadlane.laneline import Laneline
 
 
 class Analyzer:
@@ -13,6 +13,32 @@ class Analyzer:
         self.image = image
         self.lanelines = lanelines
         self.road = road
+
+    def draw_img_with_baselines(self, ax):
+        ax.imshow(self.image, cmap='gray')
+        colors = ["red", "green", "blue", "purple"]
+        for i, line in enumerate(self.lanelines):
+            ax.plot([p[0] for p in line.coords],
+                    [p[1] for p in line.coords],
+                    color=colors[i])
+        return ax
+
+    def draw_img_with_roi(self, ax):
+        xs, ys = self.road.poly.exterior.xy
+        ax.imshow(self.image, cmap='gray')
+        ax.plot(xs, ys, c="red")
+        return ax
+
+    def draw_img(self, ax, masked_img):
+        ax.imshow(masked_img, cmap='gray')
+        return ax
+
+    def draw_histogram(self, ax, hist, peaks: [] = None):
+        ax.plot([i for i in range(0, len(hist))], hist)
+        if len(peaks) > 0:
+            for peak in peaks:
+                plt.plot(peak, hist[peak], '.', color="red")
+        return ax
 
     def run(self):
         """
@@ -22,23 +48,14 @@ class Analyzer:
         axs = []
 
         ax[0, 0].title.set_text("Step 01")
-        ax[0, 0].imshow(self.image, cmap='gray')
-        colors = ["red", "green", "blue", "purple"]
-        for i, line in enumerate(self.lanelines):
-            ax[0, 0].plot([p[0] for p in line.coords],
-                          [p[1] for p in line.coords],
-                          color=colors[i])
-        axs.append(ax[0, 0])
+        axs.append(self.draw_img_with_baselines(ax[0, 0]))
 
         ax[0, 1].title.set_text("Step 02")
-        xs, ys = self.road.poly.exterior.xy
-        # Debug:
-        ax[0, 1].imshow(self.image, cmap='gray')
-        ax[0, 1].plot(xs, ys, c="red")
-        axs.append(ax[0, 1])
+        axs.append(self.draw_img_with_roi(ax[0, 1]))
 
         # Define the bounding rectangle
         # Region of Interest (ROI) to be cropped
+        xs, ys = self.road.poly.exterior.xy
         xmin, xmax = floor(min(xs)), ceil(max(xs))
         ymin, ymax = floor(min(ys)), ceil(max(ys))
         roi_area = np.array([[(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]], dtype=np.int32)
@@ -52,15 +69,13 @@ class Analyzer:
         masked_img = cv2.bitwise_or(self.image, mask)
         # Debug
         ax[0, 2].title.set_text("Step 03")
-        ax[0, 2].imshow(masked_img, cmap='gray')
-        axs.append(ax[0, 2])
+        axs.append(self.draw_img(ax[0, 2], masked_img))
 
         # Crop an image
         crop_img = masked_img[ymin:ymax, xmin:xmax]
         # Debug
         ax[1, 0].title.set_text("Step 04")
-        ax[1, 0].imshow(crop_img, cmap='gray')
-        axs.append(ax[1, 0])
+        axs.append(self.draw_img(ax[1, 0], crop_img))
 
         # Rotate the crop image
         # Find the angle for rotation
@@ -71,8 +86,7 @@ class Analyzer:
         rotated_img = imutils.rotate_bound(crop_img, -difference)
         # Debug:
         ax[1, 1].title.set_text("Step 05")
-        ax[1, 1].imshow(rotated_img, cmap='gray')
-        axs.append(ax[1, 1])
+        axs.append(self.draw_img(ax[1, 1], rotated_img))
 
         # Find a histogram
         hist = None
@@ -86,8 +100,7 @@ class Analyzer:
             return False, np.array([]), np.array([])
         # Debug:
         ax[1, 2].title.set_text("Step 06")
-        ax[1, 2].plot([i for i in range(0, len(hist))], hist)
-        axs.append(ax[1, 2])
+        axs.append(self.draw_histogram(ax[1, 2], hist))
         plt.show()
 
         threshold = 5500
@@ -113,3 +126,6 @@ class Analyzer:
         for peak in peaks:
             plt.plot(peak, hist[peak], '.', color="red")
         plt.show()
+
+        self.road.angle = difference
+        return self.road

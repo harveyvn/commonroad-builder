@@ -1,8 +1,6 @@
 from . import RoadLane
 from .laneline import Laneline
-from .analyzer import Analyzer
 from math import ceil
-from shapely.geometry import Polygon
 from modules.models import Road
 
 
@@ -21,7 +19,6 @@ class LinearLane(RoadLane):
         road = Road(mid_line=mid_line,
                     left_boundary=left_boundary,
                     right_boundary=right_boundary)
-        analyzer = Analyzer(image, [laneline], road)
-        analyzer.run()
 
-        return True
+        baselines, roads = [laneline], [road]
+        return image, baselines, roads

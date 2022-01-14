@@ -4,6 +4,7 @@ import pandas as pd
 from modules import CONST
 from modules.crisce import Roads, Car
 from modules.roadlane import categorize_roadlane
+from modules.models import Analyzer
 
 
 def exec_road_from_scenarion(dir_path, dataset_name=None, output_to=None):
@@ -60,6 +61,12 @@ def exec_road_from_scenarion(dir_path, dataset_name=None, output_to=None):
 
 
 if __name__ == '__main__':
-    road_data = exec_road_from_scenarion("cases/01")
-    lane_analyzer = categorize_roadlane(road_data)
-    lane_analyzer.run()
+    road_data = exec_road_from_scenarion("cases/00")
+    lane_factory = categorize_roadlane(road_data)
+    (image, baselines, roads) = lane_factory.run()
+
+    for road in roads:
+        road = Analyzer(image=image, lanelines=baselines, road=road).run()
+
+    for road in roads:
+        print("Angle: ", road.angle)

@@ -1,6 +1,7 @@
 from modules.crisce import extract_data_from_scenario
 from modules.roadlane import categorize_roadlane
 from modules.analyzer import Analyzer
+from modules.models import Map
 
 
 if __name__ == '__main__':
@@ -11,8 +12,9 @@ if __name__ == '__main__':
     for road in roads:
         analyzer = Analyzer(image=image, lanelines=baselines, road=road)
         lane_dict = analyzer.search_laneline()
-        lanes = analyzer.categorize_laneline(lane_dict)
-        road.lanes = lanes
+        analyzer.categorize_laneline(lane_dict)
 
-    for lane in roads[0].lanes:
-        print(lane)
+    network = Map(roads, image)
+    network.draw(include_image=True)
+
+

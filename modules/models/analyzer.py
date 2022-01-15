@@ -52,17 +52,17 @@ class Analyzer:
         rotated_img = imutils.rotate_bound(crop_img, -difference)
 
         # Visualization: Draw a histogram to find the starting points of lane lines
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(2, 3, figsize=(16, 24))
-        axs = [
-            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
-            self.visualization.draw_img_with_left_right_boundary(ax[0, 1], "Step 02"),
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots(2, 3, figsize=(16, 24))
+        # axs = [
+        #     self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
+        #     self.visualization.draw_img_with_left_right_boundary(ax[0, 1], "Step 02"),
         #     self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
         #     self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
         #     self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
         #     self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)
-        ]
-        plt.show()
+        # ]
+        # plt.show()
 
         self.road.angle = -difference
         rotated_lst = affinity.rotate(self.road.mid_line, self.road.angle, (0, 0))
@@ -133,7 +133,8 @@ class Analyzer:
 
         return xs_dict
 
-    def categorize_laneline(self, lane_dict):
+    @staticmethod
+    def categorize_laneline(lane_dict):
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
 
@@ -161,7 +162,7 @@ class Analyzer:
         for lane in lanes:
             widths.add(lane.width)
 
-        # Define the lane type
+        # Categorize the lane type based on its width
         for i, lane in enumerate(lanes):
             if i == 0 or i == len(lanes) - 1:
                 # Left or right boundary

@@ -10,7 +10,6 @@ if __name__ == '__main__':
     lane_factory = categorize_roadlane(road_data)
     (image, baselines, roads) = lane_factory.run()
 
-    # for road in [roads[-1]]:
     for road in roads:
         analyzer = Analyzer(image=image, lanelines=baselines, road=road)
         lane_dict = analyzer.search_laneline()

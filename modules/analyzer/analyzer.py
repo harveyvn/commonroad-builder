@@ -184,11 +184,10 @@ class Analyzer:
 
         # Left boundary is on the left hand side and right boundary is on the right hand side of the list
         lanes = list()
-        left_boundary, right_boundary = peaks[0], peaks[-1]
-        road_width = right_boundary - left_boundary
+        road_width = peaks[-1] - peaks[0]
         for i, peak in enumerate(peaks):
             # Compute the ratio of the lane from the left boundary - aka blue line
-            ratio = ((peak - left_boundary) / road_width)
+            ratio = ((peak - peaks[0]) / road_width)
             width = groups[i][-1] - groups[i][0]
             lanes.append(Lane(ratio, width))
 
@@ -211,6 +210,15 @@ class Analyzer:
                     lane.type = CONST.SINGLE_DASHED_LINE
                 else:
                     lane.type = CONST.DOUBLE_DASHED_LINE
+
+        # Flip the case when an angle between a middle line and Ox > -1 and < 1 degree
+        # and the left x is greater than the right x.
+        if -1 < self.road.angle < 1:
+            left_boundary_x = list(self.road.left_boundary.coords)[0][0]
+            right_boundary_x = list(self.road.right_boundary.coords)[0][0]
+            if left_boundary_x > right_boundary_x:
+                for lane in lanes[1:-1]:
+                    lane.ratio = 1 - lane.ratio
 
         # Assign the lanes to the road
         self.road.lanes = lanes

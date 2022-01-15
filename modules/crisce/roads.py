@@ -663,6 +663,7 @@ class Roads():
                 "road_type": ROAD_CURVE_OR_STRAIGHT,
                 "lane_width": width_of_lanes[0],
                 "coords": large_lane_midpoints,
+                "length": length_of_lanes[0],
                 "image": morph_img
             }
         else:

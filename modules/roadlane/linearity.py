@@ -1,8 +1,7 @@
 from . import RoadLane
 from .laneline import Laneline
-from .analyzer import Analyzer
-from math import floor, ceil
-from shapely.geometry import Polygon, LineString, Point
+from math import ceil
+from modules.models import Road
 
 
 class LinearLane(RoadLane):
@@ -11,15 +10,16 @@ class LinearLane(RoadLane):
         lane_width = self.params["lane_width"]
         coords = self.params["coords"]
         image = self.params["image"]
+        length = self.params["length"]
 
-        baseline = LineString([Point(p[0], p[1]) for p in coords])
-        left_boundary = baseline.parallel_offset(distance=ceil(lane_width / 2), side="left", join_style=2)
-        right_boundary = baseline.parallel_offset(distance=ceil(lane_width / 2), side="right", join_style=2)
+        # Define the polygon covering the road with the midline linestring, left & right boundaries
+        laneline = Laneline(coords=coords, width=lane_width / 2)
+        mid_line = laneline.get_linestring()
+        right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
+        left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
+        road = Road(mid_line=mid_line,
+                    left_boundary=left_boundary,
+                    right_boundary=right_boundary)
 
-        # Step 1: Find a region using poly points
-        poly = Polygon([*list(left_boundary.coords), *list(right_boundary.coords)])
-
-        analyzer = Analyzer(poly, image, coords, [Laneline(0, coords, lane_width / 2)])
-        analyzer.run()
-
-        return True
+        baselines, roads = [laneline], [road]
+        return image, baselines, roads

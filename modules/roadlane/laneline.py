@@ -2,8 +2,8 @@ from shapely.geometry import LineString, Point
 
 
 class Laneline:
-    def __init__(self, id: int, coords: list, width: float):
-        self.id = id
+    def __init__(self, coords: list, width: float, lane_id: int = 0):
+        self.id = lane_id
         self.coords = coords
         self.width = width
 

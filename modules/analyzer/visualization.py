@@ -1,11 +1,11 @@
 import numpy as np
-from .road import Road
 from modules import slice_when
+from modules.models import Road
 from modules.roadlane.laneline import Laneline
 import matplotlib.pyplot as plt
 
 
-class VizAnalyzer:
+class Visualization:
     def __init__(self, image, lanelines: [Laneline], road: Road):
         self.image = image
         self.lanelines = lanelines

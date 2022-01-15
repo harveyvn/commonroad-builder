@@ -1,9 +1,7 @@
 import cv2
 import imutils
 import numpy as np
-from .road import Road
-from .lane import Lane
-from .viz_analyzer import VizAnalyzer
+from .visualization import Visualization
 from math import floor, ceil
 from shapely import affinity
 from shapely.geometry import Point, LineString
@@ -11,6 +9,7 @@ from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
+from modules.models import Road, Lane
 
 
 class Analyzer:
@@ -18,7 +17,7 @@ class Analyzer:
         self.image = image
         self.lanelines = lanelines
         self.road = road
-        self.visualization = VizAnalyzer(image, lanelines, road)
+        self.visualization = Visualization(image, lanelines, road)
 
     def search_laneline(self):
         """

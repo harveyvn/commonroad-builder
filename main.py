@@ -1,10 +1,10 @@
 from modules.crisce import extract_data_from_scenario
 from modules.roadlane import categorize_roadlane
-from modules.models import Analyzer
+from modules.analyzer import Analyzer
 
 
 if __name__ == '__main__':
-    road_data = extract_data_from_scenario("cases/01")
+    road_data = extract_data_from_scenario("cases/00")
     lane_factory = categorize_roadlane(road_data)
     (image, baselines, roads) = lane_factory.run()
 
@@ -13,7 +13,6 @@ if __name__ == '__main__':
         lane_dict = analyzer.search_laneline()
         lanes = analyzer.categorize_laneline(lane_dict)
         road.lanes = lanes
-        for l in road.lanes:
-            print(l)
-        print("=====")
 
+    for road in roads:
+        print(road.lanes)

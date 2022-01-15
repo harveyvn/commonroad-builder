@@ -106,7 +106,10 @@ class Analyzer:
                     pass
 
             # Take first 3 points from a line string
-            window_line = LineString(checked_coords[0:3])
+            if len(checked_coords) < 3:
+                window_line = LineString(coords)
+            else:
+                window_line = LineString(checked_coords[0:3])
             coords = [(floor(p[0]), floor(p[1])) for p in list(window_line.coords)]
 
             # Compute the white density from a pixel image

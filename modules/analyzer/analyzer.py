@@ -13,15 +13,34 @@ from modules.models import Road, Lane
 
 
 class Analyzer:
+    """
+    The Analyzer class accepts extracted road data from CRISCE module, then search the possible position of
+    lane lines within the road and categorize the lane type.
+
+    Args:
+        image (numpy.ndarray): an processed image taken from CRISCE.
+        lanelines ([Laneline]): a list of middle lanelines (visualization purpose only).
+        road (Road): a road object will be analyzed.
+    """
+
     def __init__(self, image, lanelines: [Laneline], road: Road):
         self.image = image
-        self.lanelines = lanelines
         self.road = road
         self.visualization = Visualization(image, lanelines, road)
 
     def search_laneline(self):
         """
-        Detect lanelines from a region of interest
+        Search lane lines by defining a region within an image, then crop the region
+        and measure the density of non-black pixels.
+
+        Return:
+            lane_dict (dict):   a dictionary contains all possible lane position and its pixel density value
+            inside a road, including left/right boundaries. An example of lane_dict is:
+            {
+                41: 367, 42: 1179, 43: 327, 44: 112,  // 1st lane
+                105: 43, 106: 555, 107: 940, 108: 1020,  // 2nd lane
+                176: 207, 177: 858, 178: 993, 179: 239  // 3rd lane
+            }
         """
 
         # Define the bounding rectangle
@@ -135,8 +154,22 @@ class Analyzer:
 
         return xs_dict
 
-    @staticmethod
-    def categorize_laneline(lane_dict):
+    def categorize_laneline(self, lane_dict):
+        """
+        Take the width of different lane lines and suggest the suitable type for each lane.
+        The type might be: a single line, a dashed line, a double line or a double dashed line.
+
+        Args: lane_dict (dict):   a dictionary contains all possible lane position and its pixel density value
+        inside a road, including left/right boundaries. The format of lane_dict might be:
+            {
+                41: 367, 42: 1179, 43: 327, 44: 112,  // 1st lane
+                105: 43, 106: 555, 107: 940, 108: 1020,  // 2nd lane
+                176: 207, 177: 858, 178: 993, 179: 239  // 3rd lane
+            }
+
+        Returns:
+            A list of lane object.
+        """
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
 
@@ -166,17 +199,18 @@ class Analyzer:
 
         # Categorize the lane type based on its width
         for i, lane in enumerate(lanes):
+            # Left or right boundary.
             if i == 0 or i == len(lanes) - 1:
-                # Left or right boundary
                 if min(widths) <= lane.width < 1.8 * min(widths):
                     lane.type = CONST.SINGLE_LINE
                 else:
                     lane.type = CONST.DOUBLE_LINE
             else:
-                # Lane inside
+                # Other lanes.
                 if min(widths) <= lane.width < 1.8 * min(widths):
                     lane.type = CONST.SINGLE_DASHED_LINE
                 else:
                     lane.type = CONST.DOUBLE_DASHED_LINE
 
-        return lanes
+        # Assign the lanes to the road
+        self.road.lanes = lanes

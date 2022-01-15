@@ -63,6 +63,17 @@ class VizAnalyzer:
         ax.plot(xs, ys, c="red")
         return ax
 
+    def draw_img_with_left_right_boundary(self, ax, title):
+        ax.title.set_text(title)
+        ax.imshow(self.image, cmap="gray")
+        boundaries = [list(self.road.left_boundary.coords), list(self.road.right_boundary.coords)]
+        for i, coords in enumerate(boundaries):
+            color = "blue" if i == 0 else "green"
+            ax.plot([p[0] for p in coords],
+                    [p[1] for p in coords],
+                    color=color)
+        return ax
+
     @staticmethod
     def draw_img(ax, masked_img, title):
         ax.title.set_text(title)

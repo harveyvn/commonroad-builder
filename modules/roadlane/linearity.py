@@ -14,8 +14,8 @@ class LinearLane(RoadLane):
         # Define the polygon covering the road with the midline linestring, left & right boundaries
         laneline = Laneline(coords=coords, width=lane_width / 2)
         mid_line = laneline.get_linestring()
-        left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
-        right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
+        right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
+        left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
         road = Road(mid_line=mid_line,
                     left_boundary=left_boundary,
                     right_boundary=right_boundary)

@@ -1,3 +1,4 @@
+from .lane import Lane
 from shapely.geometry import Polygon, LineString
 
 
@@ -10,6 +11,7 @@ class Road:
         self.mid_line = mid_line
         self.poly = Polygon([*list(left_boundary.coords), *list(right_boundary.coords)])
         self.angle = angle
+        self.lanes: [Lane] = []
 
-    def run(self):
-        print("Hello World")
+    def __str__(self):
+        return str(self.__class__) + ": " + str(self.__dict__)

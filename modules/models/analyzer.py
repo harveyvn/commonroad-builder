@@ -2,12 +2,14 @@ import cv2
 import imutils
 import numpy as np
 from .road import Road
+from .lane import Lane
 from .viz_analyzer import VizAnalyzer
 from math import floor, ceil
 from shapely import affinity
 from shapely.geometry import Point, LineString
 from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
+from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
 
 
@@ -18,7 +20,7 @@ class Analyzer:
         self.road = road
         self.visualization = VizAnalyzer(image, lanelines, road)
 
-    def run(self):
+    def search_laneline(self):
         """
         Detect lanelines from a region of interest
         """
@@ -50,15 +52,17 @@ class Analyzer:
         rotated_img = imutils.rotate_bound(crop_img, -difference)
 
         # Visualization: Draw a histogram to find the starting points of lane lines
-        #
-        # fig, ax = plt.subplots(2, 3, figsize=(16, 24))
-        # axs = [self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
-        #        self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
-        #        self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
-        #        self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
-        #        self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
-        #        self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)]
-        # plt.show()
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(2, 3, figsize=(16, 24))
+        axs = [
+            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
+            self.visualization.draw_img_with_left_right_boundary(ax[0, 1], "Step 02"),
+        #     self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
+        #     self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
+        #     self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
+        #     self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)
+        ]
+        plt.show()
 
         self.road.angle = -difference
         rotated_lst = affinity.rotate(self.road.mid_line, self.road.angle, (0, 0))
@@ -122,21 +126,54 @@ class Analyzer:
         # Debug:
         # self.visualization.draw_searching(invalid_lines, valid_lines, rotated_img)
 
-        # Grouping x-values which form a line
+        # Return a dictionary composing list of x values and their density values
         xs_dict = {}
         for line in valid_lines:
             xs_dict[line["i"]] = line["total"]
-        groups = list(slice_when(lambda x, y: y - x > 2, list(xs_dict.keys())))
+
+        return xs_dict
+
+    def categorize_laneline(self, lane_dict):
+        # Grouping x-values which form a line
+        groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
 
         # Compare a total value of each x value to find a peak
         peaks = []
         for group in groups:
             chosen_peak = group[0]
             for x in group:
-                if xs_dict[x] > xs_dict[chosen_peak]:
+                if lane_dict[x] > lane_dict[chosen_peak]:
                     chosen_peak = x
             peaks.append(chosen_peak)
 
-        print(f'Peaks: {peaks}')
-        print(groups)
-        print(xs_dict)
+        # Left boundary is on the left hand side and right boundary is on the right hand side of the list
+        lanes = list()
+        left_boundary, right_boundary = peaks[0], peaks[-1]
+        road_width = right_boundary - left_boundary
+        for i, peak in enumerate(peaks):
+            # Compute the ratio of the lane from the left boundary - aka blue line
+            ratio = ((left_boundary - peak) / road_width) * 100
+            width = groups[i][-1] - groups[i][0]
+            lanes.append(Lane(ratio, width))
+
+        # Find the minimum lane width
+        widths = set()
+        for lane in lanes:
+            widths.add(lane.width)
+
+        # Define the lane type
+        for i, lane in enumerate(lanes):
+            if i == 0 or i == len(lanes) - 1:
+                # Left or right boundary
+                if min(widths) <= lane.width < 1.8 * min(widths):
+                    lane.type = CONST.SINGLE_LINE
+                else:
+                    lane.type = CONST.DOUBLE_LINE
+            else:
+                # Lane inside
+                if min(widths) <= lane.width < 1.8 * min(widths):
+                    lane.type = CONST.SINGLE_DASHED_LINE
+                else:
+                    lane.type = CONST.DOUBLE_DASHED_LINE
+
+        return lanes

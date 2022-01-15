@@ -18,8 +18,8 @@ class IntersectionLane(RoadLane):
         roads = []
         for idx, laneline in enumerate(baselines):
             mid_line = laneline.get_linestring()
-            left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
-            right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
+            right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
+            left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
             roads.append(Road(road_id=idx,
                               mid_line=mid_line,
                               left_boundary=left_boundary,

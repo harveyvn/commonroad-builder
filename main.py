@@ -61,7 +61,7 @@ def exec_road_from_scenarion(dir_path, dataset_name=None, output_to=None):
 
 
 if __name__ == '__main__':
-    road_data = exec_road_from_scenarion("cases/00")
+    road_data = exec_road_from_scenarion("cases/01")
     lane_factory = categorize_roadlane(road_data)
     (image, baselines, roads) = lane_factory.run()
 

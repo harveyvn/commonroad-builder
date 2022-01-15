@@ -153,7 +153,7 @@ class Analyzer:
         road_width = right_boundary - left_boundary
         for i, peak in enumerate(peaks):
             # Compute the ratio of the lane from the left boundary - aka blue line
-            ratio = ((left_boundary - peak) / road_width) * 100
+            ratio = ((peak - left_boundary) / road_width) * 100
             width = groups[i][-1] - groups[i][0]
             lanes.append(Lane(ratio, width))
 

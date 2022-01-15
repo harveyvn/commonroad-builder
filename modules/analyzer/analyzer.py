@@ -104,11 +104,11 @@ class Analyzer:
                 except IndexError:
                     pass
 
-            # Take first 3 points from a line string
+            # Take first 7 points from a line string
             if len(checked_coords) < 3:
                 window_line = LineString(coords)
             else:
-                window_line = LineString(checked_coords[0:3])
+                window_line = LineString(checked_coords[0:7])
             coords = [(floor(p[0]), floor(p[1])) for p in list(window_line.coords)]
 
             # Compute the white density from a pixel image
@@ -126,7 +126,7 @@ class Analyzer:
             i = i + 1
 
         # Debug:
-        # self.visualization.draw_searching(invalid_lines, valid_lines, rotated_img)
+        # self.visualization.draw_searching(invalid_lines, valid_lines, rotated_img, True)
 
         # Return a dictionary composing list of x values and their density values
         xs_dict = {}

@@ -4,7 +4,7 @@ from modules.analyzer import Analyzer
 
 
 if __name__ == '__main__':
-    road_data = extract_data_from_scenario("cases/00")
+    road_data = extract_data_from_scenario("cases/01")
     lane_factory = categorize_roadlane(road_data)
     (image, baselines, roads) = lane_factory.run()
 
@@ -14,5 +14,5 @@ if __name__ == '__main__':
         lanes = analyzer.categorize_laneline(lane_dict)
         road.lanes = lanes
 
-    for road in roads:
-        print(road.lanes)
+    for lane in roads[0].lanes:
+        print(lane)

@@ -43,7 +43,7 @@ class Visualization:
         if is_save:
             fig.savefig(f'{title}.png', bbox_inches="tight")
 
-    def draw_searching(self, invalid_lines, valid_lines, image):
+    def draw_searching(self, invalid_lines, valid_lines, image, is_save: bool = False):
         for id, lines in enumerate([invalid_lines, valid_lines]):
             title = "valid" if id > 0 else "invalid"
             color = "blue" if id > 0 else "red"
@@ -54,7 +54,7 @@ class Visualization:
                     lst=lst,
                     image=image,
                     color=color,
-                    is_save=True)
+                    is_save=is_save)
 
     def draw_img_with_roi(self, ax, title):
         ax.title.set_text(title)

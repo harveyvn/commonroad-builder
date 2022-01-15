@@ -70,17 +70,17 @@ class Analyzer:
         rotated_img = imutils.rotate_bound(crop_img, -difference)
 
         # Visualization: Draw a histogram to find the starting points of lane lines
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(2, 3, figsize=(16, 24))
-        # axs = [
-        #     self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
-        #     self.visualization.draw_img_with_left_right_boundary(ax[0, 1], "Step 02"),
-        #     self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
-        #     self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
-        #     self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
-        #     self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)
-        # ]
-        # plt.show()
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(2, 3, figsize=(16, 24))
+        axs = [
+            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
+            self.visualization.draw_img_with_left_right_boundary(ax[0, 1], "Step 02"),
+            self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
+            self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
+            self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
+            # self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)
+        ]
+        plt.show()
 
         self.road.angle = -difference
         rotated_lst = affinity.rotate(self.road.mid_line, self.road.angle, (0, 0))
@@ -188,7 +188,7 @@ class Analyzer:
         road_width = right_boundary - left_boundary
         for i, peak in enumerate(peaks):
             # Compute the ratio of the lane from the left boundary - aka blue line
-            ratio = ((peak - left_boundary) / road_width) * 100
+            ratio = ((peak - left_boundary) / road_width)
             width = groups[i][-1] - groups[i][0]
             lanes.append(Lane(ratio, width))
 

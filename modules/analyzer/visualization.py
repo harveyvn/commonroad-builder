@@ -67,11 +67,11 @@ class Visualization:
         ax.title.set_text(title)
         ax.imshow(self.image, cmap="gray")
         boundaries = [list(self.road.left_boundary.coords), list(self.road.right_boundary.coords)]
+        colors = ["blue", "green"]
         for i, coords in enumerate(boundaries):
-            color = "blue" if i == 0 else "green"
             ax.plot([p[0] for p in coords],
                     [p[1] for p in coords],
-                    color=color)
+                    color=colors[i])
         return ax
 
     @staticmethod

@@ -217,8 +217,8 @@ class Analyzer:
             left_boundary_x = list(self.road.left_boundary.coords)[0][0]
             right_boundary_x = list(self.road.right_boundary.coords)[0][0]
             if left_boundary_x > right_boundary_x:
-                for lane in lane_markings[1:-1]:
-                    lane.ratio = 1 - lane.ratio
+                for i, lane in enumerate(lane_markings[1:-1]):
+                    lane.type = lane_markings[-1-i]
 
         # Assign the lanes to the road
         self.road.lane_markings = lane_markings

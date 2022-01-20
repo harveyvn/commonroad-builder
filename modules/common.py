@@ -2,6 +2,11 @@ from math import acos, degrees
 from shapely.geometry import LineString, Point
 
 
+def pairs(lst):
+    for i in range(1, len(lst)):
+        yield lst[i - 1], lst[i]
+
+
 def translate_ls_to_new_origin(lst: LineString, new_origin: Point):
     """
     Translate an existed linestring to a new origin.

@@ -5,7 +5,7 @@ from modules.models import Map
 
 
 if __name__ == '__main__':
-    road_data = extract_data_from_scenario("cases/01")
+    road_data = extract_data_from_scenario("cases/06")
     lane_factory = categorize_roadlane(road_data)
     (image, baselines, roads) = lane_factory.run()
 

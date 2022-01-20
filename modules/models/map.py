@@ -18,7 +18,7 @@ class Map:
             plt.plot([p[0] for p in list(left_boundary.coords)],
                      [p[1] for p in list(left_boundary.coords)],
                      color="blue")
-            for lane in road.lanes[1:-1]:
+            for lane in road.lane_markings[1:-1]:
                 mid_lanes = []
                 color = "tomato"
                 if lane.type == 1:

@@ -1,3 +1,4 @@
+from .lane_marking import LaneMarking
 from .lane import Lane
 from shapely.geometry import Polygon, LineString
 
@@ -14,6 +15,7 @@ class Road:
         self.poly = Polygon([*list(left_boundary.coords), *list(right_boundary.coords)])
         self.angle = angle
         self.reversed = reversed
+        self.lane_markings: [LaneMarking] = []
         self.lanes: [Lane] = []
 
     def __str__(self):

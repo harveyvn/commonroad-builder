@@ -576,32 +576,32 @@ class Roads():
         
         return lane_nodes
 
-
-    def extractRoadInformation(self, image_path, time_efficiency, show_image, output_folder, car_length, car_width, car_length_sim):
+    def extractRoadInformation(self, image_path, time_efficiency, show_image, output_folder, car_length, car_width,
+                               car_length_sim):
         ## Read the image and create a blank mask
         image = self.pre_process.readImage(image_path=image_path)
         print("\n------------Road-------------\n")
         print("Image Dimensions", image.shape[:2])
         self.height, self.width = image.shape[:2]
-        self.show_image     = show_image
-        self.output_folder  = os.path.join(output_folder, "road/")
+        self.show_image = show_image
+        self.output_folder = os.path.join(output_folder, "road/")
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
-        
+
         self.process_number = 0
 
         """ Resize the image """
         # image = self.pre_process.resize(image=image)
         # print("Image Dimensions after resizing", image.shape[:2])
-        
+
         """ Get Mask for the Image dimension  """
         mask = self.pre_process.getMask(image=image)
 
         """Transform to gray colorspace and threshold the image"""
         gray = self.pre_process.changeColorSpace(image=image, color_code=cv2.COLOR_BGR2GRAY)
-        blur = self.pre_process.blurImage(image=gray, kernel_size=(3, 3), sigmaX= 0)
+        blur = self.pre_process.blurImage(image=gray, kernel_size=(3, 3), sigmaX=0)
         thresh = self.pre_process.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        
+
         ''' Use of Horizontal and Vertical Morphological Kernal for increasing the pixel intesities along X and Y-axis'''
         # dilate_kernel = np.ones((10, 10), np.uint8)  # note this is a horizontal kernel
         dilate_image = self.pre_process.dilate(thresh, kernel_window=(10, 10))
@@ -624,7 +624,7 @@ class Roads():
         # if you wanted to show a single color channel image called 'gray', for example, call as plt.imshow(gray, cmap='gray')
         # self.pre_process.plotFigure(thresh)
         # self.pre_process.plotFigure(morph_img, cmap="brg", title="Morphological Close Operation ")
-        
+
         """ Saving the figure"""
         cv2.imwrite(self.output_folder + "{}_gray_image.jpg".format(self.process_number), gray)
         self.process_number += 1
@@ -637,10 +637,9 @@ class Roads():
         cv2.imwrite(self.output_folder + "{}_erode_image.jpg".format(self.process_number), erode_image)
         self.process_number += 1
 
-        
         road_image = image.copy()
-        
-        small_contours, large_contours = self.extractContours(morph_img, road_image, car_length, car_width)  
+
+        small_contours, large_contours = self.extractContours(morph_img, road_image, car_length, car_width)
         canvas = cv2.merge((morph_img, morph_img, morph_img))
         canvas = canvas.copy()
         canvas = cv2.bitwise_not(canvas)
@@ -654,33 +653,81 @@ class Roads():
                 will affect the curve road by making it straight and whereas the straight road will have no affect at all. 
         """
 
-        if len(large_contours) == 2:
-            sample_size = round(car_length) // 4
+        t0 = time.time()
+
+        road_lanes = dict()
+
+        if (len(large_contours) == 2):
+            ## its a one road or lane with seperation
+            print("\nStraight or Curve road")
+            number_of_lanes = len(large_contours)
             width_of_lanes, length_of_lanes, large_lane_midpoints = self.midpointOfTheLane(road_image,
-                                                                                           sample_size=sample_size,
+                                                                                           sample_size=round(
+                                                                                               car_length) // 4,
                                                                                            lane_contour=large_contours)
-            return {
+            # self.pre_process.showImage("drawing contours", road_image)
+
+            road_lanes = {
                 "road_type": ROAD_CURVE_OR_STRAIGHT,
                 "lane_width": width_of_lanes[0],
                 "coords": large_lane_midpoints,
                 "length": length_of_lanes[0],
                 "image": morph_img
             }
-        else:
+
+            a_ratio = self.calculateAspectRatio(car_length=car_length, car_length_sim=car_length_sim)
+            small_lane_midpoints = self.distortionMappingVizualization(aspect_ratio=a_ratio,
+                                                                       road_image=road_image,
+                                                                       lane_contours=large_lane_midpoints,
+                                                                       number_of_roads=len(
+                                                                           large_contours))  # a_ratio / 2
+
+            small_lane_midpoints = [small_lane_midpoints]
+            scaled_lane_width = [width_of_lanes[0] * a_ratio]
+            scaled_lane_length = [length_of_lanes[0] * a_ratio]
+
+            self.roads["sketch_lane_width"] = width_of_lanes
+            self.roads["sketch_lane_length"] = length_of_lanes
+            self.roads["large_lane_midpoints"] = large_lane_midpoints
+            self.roads["small_lane_midpoints"] = small_lane_midpoints
+            self.roads["scaled_lane_width"] = scaled_lane_width
+            self.roads["scaled_lane_length"] = scaled_lane_length
+
+            # self.pre_process.showImage("distortion and mapping", road_image)
+
+        elif (len(large_contours) == 3 or len(large_contours) == 4):
+            ## Its T-Section road or two roads or lane with seperation
+            print("\nT-Section road or Four way road")
+            number_of_lanes = len(large_contours)
             ed_dist_bet_lanes, width_of_lanes, ordered_midpoints_lanes = self.midpointOfFourWayAndTSection(canvas,
                                                                                                            large_contours)
+            # self.pre_process.showImage("drawing contours", road_image)
+
+            ### If its a double straight road and not a four-way or merge-into
             try:
-                traverse_parameter = round(car_length) // 3
                 extrapolated_ordered_midpoint = self.getExtrapolatedPointMidpoints(canvas=road_image,
-                                                                                   traverse_parameter=traverse_parameter,
+                                                                                   traverse_parameter=round(
+                                                                                       car_length) // 3,
                                                                                    ordered_mid_lane=ordered_midpoints_lanes)
             except:
                 extrapolated_ordered_midpoint = ordered_midpoints_lanes
+                # length_of_lanes = extractLengthOfRoads(extrapolated_ordered_midpoint)
+            # else:
+            #     print("Nothing went wrong")
 
-            small_lane_midpoints, extrap_ord_mid_lanes = list(), list()
+            extrap_ord_mid_lanes = list()
+            small_lane_midpoints = list()
             length_of_lanes = self.extractLengthOfRoads(extrapolated_ordered_midpoint)
             for lane_midpoints in extrapolated_ordered_midpoint:
                 extrap_ord_mid_lanes.append(np.array(lane_midpoints, dtype="float32"))
+
+            road_lanes = {
+                "road_type": ROAD_INTERSECTION,
+                "lane_widths": width_of_lanes,
+                "roads": extrapolated_ordered_midpoint,
+                "lengths": length_of_lanes,
+                "image": morph_img
+            }
 
             a_ratio = self.calculateAspectRatio(car_length=car_length, car_length_sim=car_length_sim)
             small_lane_contours = self.distortionMappingVizualization(aspect_ratio=a_ratio,
@@ -700,18 +747,46 @@ class Roads():
             for ordered_mids in extrapolated_ordered_midpoint:
                 count = 0
                 for pt in ordered_mids:
+                    # print( tuple([pt[0] + 5, pt[1] + 5]))
                     cv2.circle(road_image, tuple([int(pt[0]), int(pt[1])]), 3, (0, 0, 255), -1)
                     cv2.putText(road_image, str(count), tuple([int(pt[0]) + 15, int(pt[1]) + 10]),
                                 cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
+                    # self.pre_process.showImage("canvas 3", road_image)
+                    # cv2.waitKey(10)
                     count += 1
                 cv2.imwrite(self.output_folder + "{}_extrapolated_ordered_midpoint.jpg".format(self.process_number),
                             road_image)
                 self.process_number += 1
+                # cv2.destroyAllWindows()
+                # break
 
-            return {
-                "road_type": ROAD_INTERSECTION,
-                "lane_widths": width_of_lanes,
-                "roads": extrapolated_ordered_midpoint,
-                "lengths": length_of_lanes,
-                "image": morph_img
-            }
+            scaled_lane_width = [width * a_ratio for width in width_of_lanes]
+            scaled_lane_length = [length * a_ratio for length in length_of_lanes]
+
+            self.roads["large_lane_midpoints"] = extrapolated_ordered_midpoint
+            self.roads["sketch_lane_width"] = width_of_lanes
+            self.roads["sketch_lane_length"] = length_of_lanes
+            self.roads["small_lane_midpoints"] = small_lane_midpoints
+            self.roads["scaled_lane_width"] = scaled_lane_width
+            self.roads["scaled_lane_length"] = scaled_lane_length
+            self.roads["sequence_of_lanes"] = list(zip(small_lane_midpoints, scaled_lane_length, scaled_lane_width))
+
+            # self.pre_process.showImage("distortion and mapping", road_image)
+
+        t1 = time.time()
+        time_efficiency["road_ext"] = t1 - t0
+        # print("total time = ", t1-t0)
+
+        if self.show_image:
+            self.pre_process.showImage("Final Road with Distortion and Mapping", road_image, time=1000)
+        cv2.imwrite(self.output_folder + "{}_final_result.jpg".format(self.process_number), road_image)
+        self.process_number += 1
+        # self.pre_process.plotFigure(road_image, cmap="brg", title="Final Road with Distortion and Mapping")
+        # self.pre_process.saveFigure('road_distorted.jpg', dpi=300)
+
+        distorted_height = road_image.shape[0] * (car_length_sim / car_length)
+
+        self.adjustRoadToSimulation(distorted_height)
+        final_lane_nodes = self.settingRoadToBeamNG()
+
+        return self.roads, final_lane_nodes, road_lanes

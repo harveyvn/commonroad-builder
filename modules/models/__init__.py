@@ -1,3 +1,3 @@
 from .road import Road
-from .lane import Lane
+from .lane_marking import LaneMarking
 from .map import Map

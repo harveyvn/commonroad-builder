@@ -2,7 +2,7 @@ from modules.crisce import extract_data_from_scenario
 from modules.roadlane import categorize_roadlane
 from modules.analyzer import Analyzer
 from modules.models import Map
-
+import json
 
 if __name__ == '__main__':
     road_data = extract_data_from_scenario("cases/01")
@@ -13,8 +13,11 @@ if __name__ == '__main__':
         analyzer = Analyzer(image=image, lanelines=baselines, road=road)
         lane_dict = analyzer.search_laneline()
         analyzer.categorize_laneline(lane_dict)
+        road.generate_lanes()
 
     network = Map(roads, image)
-    network.draw(include_image=True)
+    # network.draw(include_image=True)
+    # convert to JSON string
 
+    network.write_to_json()
 

@@ -9,7 +9,7 @@ from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
-from modules.models import Road, Lane
+from modules.models import Road, LaneMarking
 
 
 class Analyzer:
@@ -183,23 +183,23 @@ class Analyzer:
             peaks.append(chosen_peak)
 
         # Left boundary is on the left hand side and right boundary is on the right hand side of the list
-        lanes = list()
+        lane_markings = list()
         road_width = peaks[-1] - peaks[0]
         for i, peak in enumerate(peaks):
             # Compute the ratio of the lane from the left boundary - aka blue line
             ratio = ((peak - peaks[0]) / road_width)
             width = groups[i][-1] - groups[i][0]
-            lanes.append(Lane(ratio, width))
+            lane_markings.append(LaneMarking(ratio, width))
 
         # Find the minimum lane width
         widths = set()
-        for lane in lanes:
+        for lane in lane_markings:
             widths.add(lane.width)
 
         # Categorize the lane type based on its width
-        for i, lane in enumerate(lanes):
+        for i, lane in enumerate(lane_markings):
             # Left or right boundary.
-            if i == 0 or i == len(lanes) - 1:
+            if i == 0 or i == len(lane_markings) - 1:
                 if min(widths) <= lane.width < 1.8 * min(widths):
                     lane.type = CONST.SINGLE_LINE
                 else:
@@ -217,8 +217,8 @@ class Analyzer:
             left_boundary_x = list(self.road.left_boundary.coords)[0][0]
             right_boundary_x = list(self.road.right_boundary.coords)[0][0]
             if left_boundary_x > right_boundary_x:
-                for lane in lanes[1:-1]:
-                    lane.ratio = 1 - lane.ratio
+                for i, lane in enumerate(lane_markings[1:-1]):
+                    lane.type = lane_markings[-1-i]
 
         # Assign the lanes to the road
-        self.road.lanes = lanes
+        self.road.lane_markings = lane_markings

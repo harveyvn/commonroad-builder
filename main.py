@@ -19,22 +19,5 @@ if __name__ == '__main__':
     # network.draw(include_image=True)
     # convert to JSON string
 
-    road_data = []
-    for i, road in enumerate(roads):
-        lane_data = []
-        for lane in road.lanes:
-            lane_data.append({
-                "left_boundary": list(lane.left_boundary.coords),
-                "right_boundary": list(lane.right_boundary.coords)
-            })
-        road_data.append({
-            "id": i,
-            "width": road.width,
-            "lanes": lane_data
-        })
-    result = {
-        "roads": road_data
-    }
+    network.write_to_json()
 
-    with open('result.json', 'w') as fp:
-        json.dump(result, fp)

@@ -26,5 +26,26 @@ class Map:
                 fig.savefig(f'{i}.png', bbox_inches="tight")
                 i = i+1
 
+    def write_to_json(self):
+        road_data = []
+        for i, road in enumerate(self.roads):
+            lane_data = []
+            for lane in road.lanes:
+                lane_data.append({
+                    "left_boundary": list(lane.left_boundary.coords),
+                    "right_boundary": list(lane.right_boundary.coords)
+                })
+            road_data.append({
+                "id": i,
+                "width": road.width,
+                "lanes": lane_data
+            })
+        result = {
+            "roads": road_data
+        }
+
+        with open('result.json', 'w') as fp:
+            json.dump(result, fp)
+
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

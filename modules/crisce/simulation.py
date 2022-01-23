@@ -8,6 +8,32 @@ import math
 import cv2
 from shapely.geometry import MultiLineString, Polygon
 import pandas as pd
+from shapely.geometry import LineString
+import modules.crisce.common as common
+
+
+def generate_left_marking(road_nodes):
+    return _generate_lane_marking(road_nodes, "left")
+
+
+def generate_right_marking(road_nodes):
+    return _generate_lane_marking(road_nodes, "right")
+
+
+def _generate_lane_marking(road_nodes, side):
+    """
+    BeamNG has troubles rendering/interpolating textures when nodes are too close to each other, so we need
+    to resample them.
+    To Generate Lane marking:
+     1 Compute offset from the road spice (this creates points that are too close to each other to be interpolated by BeamNG)
+     2 Reinterpolate those points using Cubic-splines
+     3 Resample the spline at 10m distance
+    """
+    road_spine = LineString([(rn[0], rn[1]) for rn in road_nodes])
+    x, y = road_spine.parallel_offset(3.9, side, resolution=16, join_style=1, mitre_limit=5.0).coords.xy
+    interpolated_points = common.interpolate([(p[0], p[1]) for p in zip(x, y)], sampling_unit=10)
+    return [(p[0], p[1], 0, 0.1) for p in interpolated_points]
+
 
 class Simulation():
 
@@ -63,7 +89,17 @@ class Simulation():
 
         road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
         for i, lane in enumerate(self.lane_nodes):
-            road = Road('track_editor_C_center', rid=road_id[i], interpolate=True)
+            left_marking_nodes = generate_left_marking(self.lane_nodes[i])
+            left_marking = Road('line_white', rid=f'{road_id[i]}_left_white')
+            left_marking.nodes.extend(left_marking_nodes)
+            scenario.add_road(left_marking)
+
+            right_marking_nodes = generate_right_marking(self.lane_nodes[i])
+            right_marking = Road('line_white', rid=f'{road_id[i]}_right_white')
+            right_marking.nodes.extend(right_marking_nodes)
+            scenario.add_road(right_marking)
+
+            road = Road('road_rubber_sticky', rid=road_id[i], interpolate=True)
             road.nodes.extend(self.lane_nodes[i])
             scenario.add_road(road)
 
@@ -325,7 +361,7 @@ class Simulation():
 
         # bng.step(10)
 
-        #""" AI script must have at least 3 nodes """
+        # """ AI script must have at least 3 nodes """
 
         vehicle_red = self.crash_analysis_log["vehicles"]["red"]["vehicle"]
         vehicle_blue = self.crash_analysis_log["vehicles"]["blue"]["vehicle"]
@@ -578,6 +614,15 @@ class Simulation():
         t0 = time.time()
         road_geometry = 0
         # number_of_roads = 0
+
+        try:
+            for i in range(0, len(self.lane_nodes)):
+                road_id = "main_road"
+                del self.crash_analysis_log["roads"][f'{road_id}_{i + 1}_right_white']
+                del self.crash_analysis_log["roads"][f'{road_id}_{i + 1}_left_white']
+        except Exception as e:
+            print(f'Exception: {e}')
+
         for i, road_name in enumerate(self.crash_analysis_log["roads"]):
             sim_road_width = self.crash_analysis_log["roads"][road_name]["simulation_road_width"]
             sim_road_length = self.crash_analysis_log["roads"][road_name]["simulation_road_length"]
@@ -824,10 +869,12 @@ class Simulation():
                 self.vehicles[v_color]["snapshots"])
 
             #### ---- For Storing  the log in the excel file for data analysis------- ####
-            self.log["vehicles"][v_color]["cum_iou"] = (veh_iou / (len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
+            self.log["vehicles"][v_color]["cum_iou"] = (veh_iou / (
+                        len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
             self.log["vehicles"][v_color]["cum_iou_error"] = 100 - self.crash_analysis_log["vehicles"][v_color][
                 "cum_iou"]
-            self.log["vehicles"][v_color]["displacement_error"] = displacement / len(self.vehicles[v_color]["snapshots"])
+            self.log["vehicles"][v_color]["displacement_error"] = displacement / len(
+                self.vehicles[v_color]["snapshots"])
 
             print("\nAccuracy for the BBOX trajectory of the {} vehicles = {} % ".format(
                 v_color, (veh_iou / (len(self.vehicles[v_color]["snapshots"]) * 100)) * 100))

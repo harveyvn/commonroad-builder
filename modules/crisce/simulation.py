@@ -10,17 +10,18 @@ from shapely.geometry import MultiLineString, Polygon
 import pandas as pd
 from shapely.geometry import LineString
 import modules.crisce.common as common
+from math import floor
 
 
-def generate_left_marking(road_nodes):
-    return _generate_lane_marking(road_nodes, "left")
+def generate_left_marking(road_nodes, distance):
+    return _generate_lane_marking(road_nodes, "left", distance)
 
 
-def generate_right_marking(road_nodes):
-    return _generate_lane_marking(road_nodes, "right")
+def generate_right_marking(road_nodes, distance):
+    return _generate_lane_marking(road_nodes, "right", distance)
 
 
-def _generate_lane_marking(road_nodes, side):
+def _generate_lane_marking(road_nodes, side, distance=3.9):
     """
     BeamNG has troubles rendering/interpolating textures when nodes are too close to each other, so we need
     to resample them.
@@ -30,7 +31,7 @@ def _generate_lane_marking(road_nodes, side):
      3 Resample the spline at 10m distance
     """
     road_spine = LineString([(rn[0], rn[1]) for rn in road_nodes])
-    x, y = road_spine.parallel_offset(3.9, side, resolution=16, join_style=1, mitre_limit=5.0).coords.xy
+    x, y = road_spine.parallel_offset(distance, side, resolution=16, join_style=1, mitre_limit=5.0).coords.xy
     interpolated_points = common.interpolate([(p[0], p[1]) for p in zip(x, y)], sampling_unit=10)
     return [(p[0], p[1], 0, 0.1) for p in interpolated_points]
 
@@ -39,7 +40,7 @@ class Simulation():
 
     def __init__(self, vehicles, roads, lane_nodes, kinematics, time_efficiency, output_folder,
                  car_length, car_width, car_length_sim, sketch_type_external, height, width,
-                 crash_impact_model, sampling_frequency=10):
+                 crash_impact_model, road_lanes, sampling_frequency=10):
         self.crash_analysis_log = dict()
         self.crash_analysis_log["vehicles"] = dict()
         self.crash_analysis_log["roads"] = dict()
@@ -62,6 +63,7 @@ class Simulation():
         self.crash_impact_model = crash_impact_model
         # This decides how frequently (in simulation steps) CRISCE records the state of the simulated vehicles
         self.sampling_frequency = sampling_frequency
+        self.road_lanes = road_lanes
 
     def setupBeamngSimulation(self, file, beamng_port, beamng_home, beamng_user):
         t0 = time.time()
@@ -89,15 +91,23 @@ class Simulation():
 
         road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
         for i, lane in enumerate(self.lane_nodes):
-            left_marking_nodes = generate_left_marking(self.lane_nodes[i])
+            left_marking_nodes = generate_left_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
             left_marking = Road('line_white', rid=f'{road_id[i]}_left_white')
             left_marking.nodes.extend(left_marking_nodes)
             scenario.add_road(left_marking)
 
-            right_marking_nodes = generate_right_marking(self.lane_nodes[i])
+            right_marking_nodes = generate_right_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
             right_marking = Road('line_white', rid=f'{road_id[i]}_right_white')
             right_marking.nodes.extend(right_marking_nodes)
             scenario.add_road(right_marking)
+
+            if len(self.road_lanes[i].lane_markings) > 2:
+                internal_lane_markings = self.road_lanes[i].lane_markings
+                for idx, il in enumerate(internal_lane_markings[1:-1]):
+                    cm_nodes = generate_right_marking(left_marking_nodes, floor(il.ratio * self.lane_nodes[i][0][-1]))
+                    central_marking = Road('line_yellow', rid=f'{road_id[i]}_central_{idx}')
+                    central_marking.nodes.extend(cm_nodes)
+                    scenario.add_road(central_marking)
 
             road = Road('road_rubber_sticky', rid=road_id[i], interpolate=True)
             road.nodes.extend(self.lane_nodes[i])
@@ -617,9 +627,14 @@ class Simulation():
 
         try:
             for i in range(0, len(self.lane_nodes)):
-                road_id = "main_road"
-                del self.crash_analysis_log["roads"][f'{road_id}_{i + 1}_right_white']
-                del self.crash_analysis_log["roads"][f'{road_id}_{i + 1}_left_white']
+                del self.crash_analysis_log["roads"][f'main_road_{i + 1}_right_white']
+                del self.crash_analysis_log["roads"][f'main_road_{i + 1}_left_white']
+                if len(self.road_lanes[i].lane_markings) > 2:
+                    internal_lane_markings = self.road_lanes[i].lane_markings.copy()
+                    print(len(internal_lane_markings))
+                    for x in range(0, len(internal_lane_markings)-2):
+                        del self.crash_analysis_log["roads"][f'main_road_{i + 1}_central_{x}']
+
         except Exception as e:
             print(f'Exception: {e}')
 

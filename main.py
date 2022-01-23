@@ -165,9 +165,9 @@ def cli(ctx, log_to, debug):
               help="Name of the dataset the accident comes from.")
 @click.option('--output-to', required=False, type=click.Path(exists=False), multiple=False,
               help="Folder to store outputs. It will created if not present. If omitted we use the accident folder.")
-@click.option('--beamng-home', required=False, type=click.Path(exists=True), multiple=False,
+@click.option('--beamng-home', required=True, type=click.Path(exists=True), multiple=False,
               help="Home folder of the BeamNG.research simulator")
-@click.option('--beamng-user', required=False, type=click.Path(exists=True), multiple=False,
+@click.option('--beamng-user', required=True, type=click.Path(exists=True), multiple=False,
               help="User folder of the BeamNG.research simulator")
 #
 # TODO This is not working right now, I suspect we need the CSV in any case !
@@ -267,17 +267,8 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                             output_folder=output_folder,
                                                                             show_image=show_image)
 
-        # print()
-        # for lane in lane_nodes:
-        #     print(lane)
-        # exit()
-        # lane_factory = categorize_roadlane(road_lanes)
-        # (image, baselines, roads) = lane_factory.run()
-        # for road in roads:
-        #     analyzer = Analyzer(image=image, lanelines=baselines, road=road)
-        #     lane_dict = analyzer.search_laneline()
-        #     analyzer.categorize_laneline(lane_dict)
-        #     road.generate_lanes()
+        road_lanes = generate_lane_markings(road_lanes)
+
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")
         if not os.path.exists(simulation_folder):
@@ -290,7 +281,8 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                 car_length_sim=car_length_sim, sketch_type_external=sketch_type_external,
                                 height=height, width=width,
                                 crash_impact_model=crash_impact_model,
-                                sampling_frequency=5)
+                                sampling_frequency=5,
+                                road_lanes=road_lanes)
 
         logger.info("Generation Ends")
 
@@ -440,6 +432,17 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
 
     finally:
         pass
+
+
+def generate_lane_markings(road_lanes):
+    lane_factory = categorize_roadlane(road_lanes)
+    (image, baselines, roads) = lane_factory.run()
+    for road in roads:
+        analyzer = Analyzer(image=image, lanelines=baselines, road=road)
+        lane_dict = analyzer.search_laneline()
+        analyzer.categorize_laneline(lane_dict)
+        road.generate_lanes()
+    return roads
 
 
 # Execute the Command Line Interpreter

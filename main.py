@@ -21,7 +21,7 @@ from modules.crisce.pre_processing import Pre_Processing
 from modules.crisce.roads import Roads
 from modules.crisce.car import Car
 from modules.crisce.kinematics import Kinematics
-from modules.crisce.simulation import Simulation
+# from modules.crisce.simulation import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -447,4 +447,19 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
+    roads, lane_nodes, road_lanes = extract_data_from_scenario("cases/00")
+    lane_factory = categorize_roadlane(road_lanes)
+    (image, baselines, roads) = lane_factory.run()
+
+    for road in roads:
+        analyzer = Analyzer(image=image, lanelines=baselines, road=road)
+        lane_dict = analyzer.search_laneline()
+        analyzer.categorize_laneline(lane_dict)
+        road.generate_lanes()
+
+    network = Map(roads, image)
+
+    network.write_to_json()
+
+    exit()
     cli()

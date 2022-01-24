@@ -1,7 +1,7 @@
 from .lane_marking import LaneMarking
 from .lane import Lane
 from shapely.geometry import Polygon, LineString
-from ..common import pairs
+from ..common import pairs, reverse_geom
 
 
 class Road:
@@ -25,9 +25,9 @@ class Road:
         lines.append(left_boundary)
 
         for mark in self.lane_markings[1:-1]:
-            lines.append(left_boundary.parallel_offset(distance=mark.ratio * self.width, side="right", join_style=2))
+            lines.append(left_boundary.parallel_offset(distance=-(mark.ratio * self.width), side="right", join_style=2))
 
-        right_boundary = self.right_boundary
+        right_boundary = reverse_geom(self.right_boundary)
         lines.append(right_boundary)
         lanes = []
         for segment in pairs(lines):

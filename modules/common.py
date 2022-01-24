@@ -1,5 +1,16 @@
 from math import acos, degrees
 from shapely.geometry import LineString, Point
+import shapely.wkt
+import shapely.ops
+
+
+def reverse_geom(geom):
+    def _reverse(x, y, z=None):
+        if z:
+            return x[::-1], y[::-1], z[::-1]
+        return x[::-1], y[::-1]
+
+    return shapely.ops.transform(_reverse, geom)
 
 
 def pairs(lst):

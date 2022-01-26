@@ -155,3 +155,4 @@ cython_debug/
 brainstorm/
 cases/*/output/
 lanelet/
+CIREN/

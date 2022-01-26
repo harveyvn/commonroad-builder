@@ -15,15 +15,15 @@ class IntersectionLane(RoadLane):
         for i, coord in enumerate(self.params["roads"]):
             baselines.append(Laneline(lane_id=i, coords=coord, width=lane_widths[i] / 2))
 
-        roads = []
+        segments = []
         for idx, laneline in enumerate(baselines):
             mid_line = laneline.get_linestring()
             right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
             left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
-            roads.append(Road(road_id=laneline.id,
-                              mid_line=mid_line,
-                              left_boundary=left_boundary,
-                              right_boundary=right_boundary,
-                              width=lane_widths[laneline.id]))
+            segments.append(Road(road_id=laneline.id,
+                                 mid_line=mid_line,
+                                 left_boundary=left_boundary,
+                                 right_boundary=right_boundary,
+                                 width=lane_widths[laneline.id]))
 
-        return image, baselines, roads
+        return image, baselines, segments

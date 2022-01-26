@@ -59,6 +59,8 @@ class Analyzer:
         masked_img = cv2.bitwise_or(self.image, mask)
 
         # Crop an image
+        xmin = xmin if xmin > 0 else 0
+        ymin = ymin if ymin > 0 else 0
         crop_img = masked_img[ymin:ymax, xmin:xmax]
 
         # Rotate the crop image
@@ -70,17 +72,17 @@ class Analyzer:
         rotated_img = imutils.rotate_bound(crop_img, -difference)
 
         # Visualization: Draw a histogram to find the starting points of lane lines
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(2, 3, figsize=(16, 24))
-        # axs = [
-        #     self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
-        #     self.visualization.draw_img_with_left_right_boundary(ax[0, 1], "Step 02"),
-        #     self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
-        #     self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
-        #     self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
-        #     self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)
-        # ]
-        # plt.show()
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(2, 3, figsize=(16, 24))
+        axs = [
+            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
+            self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
+            self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
+            self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
+            self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
+            # self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)
+        ]
+        plt.show()
 
         self.road.angle = -difference
         rotated_lst = affinity.rotate(self.road.mid_line, self.road.angle, (0, 0))
@@ -185,6 +187,11 @@ class Analyzer:
         # Left boundary is on the left hand side and right boundary is on the right hand side of the list
         lane_markings = list()
         road_width = peaks[-1] - peaks[0]
+        print("======")
+        print(lane_dict)
+        print(peaks)
+        print(len(peaks))
+        print(road_width)
         for i, peak in enumerate(peaks):
             # Compute the ratio of the lane from the left boundary - aka blue line
             ratio = ((peak - peaks[0]) / road_width)

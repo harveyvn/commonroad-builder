@@ -13,29 +13,6 @@ import modules.crisce.common as common
 from math import floor
 
 
-def generate_left_marking(road_nodes, distance):
-    return _generate_lane_marking(road_nodes, "left", distance)
-
-
-def generate_right_marking(road_nodes, distance):
-    return _generate_lane_marking(road_nodes, "right", distance)
-
-
-def _generate_lane_marking(road_nodes, side, distance=3.9):
-    """
-    BeamNG has troubles rendering/interpolating textures when nodes are too close to each other, so we need
-    to resample them.
-    To Generate Lane marking:
-     1 Compute offset from the road spice (this creates points that are too close to each other to be interpolated by BeamNG)
-     2 Reinterpolate those points using Cubic-splines
-     3 Resample the spline at 10m distance
-    """
-    road_spine = LineString([(rn[0], rn[1]) for rn in road_nodes])
-    x, y = road_spine.parallel_offset(distance, side, resolution=16, join_style=1, mitre_limit=5.0).coords.xy
-    interpolated_points = common.interpolate([(p[0], p[1]) for p in zip(x, y)], sampling_unit=10)
-    return [(p[0], p[1], 0, 0.1) for p in interpolated_points]
-
-
 class Simulation():
 
     def __init__(self, vehicles, roads, lane_nodes, kinematics, time_efficiency, output_folder,
@@ -91,12 +68,12 @@ class Simulation():
 
         road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
         for i, lane in enumerate(self.lane_nodes):
-            left_marking_nodes = generate_left_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
+            left_marking_nodes = common.generate_left_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
             left_marking = Road('line_white', rid=f'{road_id[i]}_left_white')
             left_marking.nodes.extend(left_marking_nodes)
             scenario.add_road(left_marking)
 
-            right_marking_nodes = generate_right_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
+            right_marking_nodes = common.generate_right_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
             right_marking = Road('line_white', rid=f'{road_id[i]}_right_white')
             right_marking.nodes.extend(right_marking_nodes)
             scenario.add_road(right_marking)
@@ -104,7 +81,7 @@ class Simulation():
             if len(self.road_lanes[i].lane_markings) > 2:
                 internal_lane_markings = self.road_lanes[i].lane_markings
                 for idx, il in enumerate(internal_lane_markings[1:-1]):
-                    cm_nodes = generate_right_marking(left_marking_nodes, floor(il.ratio * self.lane_nodes[i][0][-1]))
+                    cm_nodes = common.generate_right_marking(left_marking_nodes, floor(il.ratio * self.lane_nodes[i][0][-1]))
                     central_marking = Road('line_yellow', rid=f'{road_id[i]}_central_{idx}')
                     central_marking.nodes.extend(cm_nodes)
                     scenario.add_road(central_marking)

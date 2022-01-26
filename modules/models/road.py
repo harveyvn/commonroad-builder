@@ -25,7 +25,7 @@ class Road:
         lines.append(left_boundary)
 
         for mark in self.lane_markings[1:-1]:
-            lines.append(left_boundary.parallel_offset(distance=-(mark.ratio * self.width), side="right", join_style=2))
+            lines.append(left_boundary.parallel_offset(distance=-(mark.ratio * self.width), side="left", join_style=2))
 
         right_boundary = reverse_geom(self.right_boundary)
         lines.append(right_boundary)

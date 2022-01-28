@@ -1,4 +1,6 @@
 import time
+from typing import List
+
 from beamngpy import BeamNGpy, Scenario, Road, Vehicle
 from beamngpy.sensors import Electrics, Camera, Damage, Timer
 import matplotlib.pyplot as plt
@@ -10,6 +12,8 @@ from shapely.geometry import MultiLineString, Polygon
 import pandas as pd
 from shapely.geometry import LineString
 import modules.crisce.common as common
+from modules.models import LaneMarking
+from modules.constant import CONST
 from math import floor
 
 
@@ -79,14 +83,20 @@ class Simulation():
             scenario.add_road(right_marking)
 
             if len(self.road_lanes[i].lane_markings) > 2:
-                internal_lane_markings = self.road_lanes[i].lane_markings
+                internal_lane_markings: List[LaneMarking] = self.road_lanes[i].lane_markings
                 for idx, il in enumerate(internal_lane_markings[1:-1]):
                     cm_nodes = common.generate_right_marking(left_marking_nodes, floor(il.ratio * self.lane_nodes[i][0][-1]))
-                    central_marking = Road('line_yellow', rid=f'{road_id[i]}_central_{idx}')
+                    road_line = ""
+                    if il.type == CONST.SINGLE_LINE or il.type == CONST.SINGLE_DASHED_LINE:
+                        road_line = "line_yellow"
+                    else:
+                        road_line = "line_yellow_double"
+
+                    central_marking = Road(road_line, rid=f'{road_id[i]}_central_{idx}')
                     central_marking.nodes.extend(cm_nodes)
                     scenario.add_road(central_marking)
 
-            road = Road('road_rubber_sticky', rid=road_id[i], interpolate=True)
+            road = Road('road_asphalt_2lane', rid=road_id[i], interpolate=True)
             road.nodes.extend(self.lane_nodes[i])
             scenario.add_road(road)
 

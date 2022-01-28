@@ -27,7 +27,7 @@ from modules.crisce.pre_processing import Pre_Processing
 from modules.crisce.roads import Roads
 from modules.crisce.car import Car
 from modules.crisce.kinematics import Kinematics
-# from modules.crisce.simulation import Simulation
+from modules.crisce.simulation import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
 

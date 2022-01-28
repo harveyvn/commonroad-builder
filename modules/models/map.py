@@ -70,8 +70,11 @@ class Map:
             markings: List[LaneMarking] = correspond_segment.lane_markings
             for marking in markings[1:]:
                 ratio = marking.ratio
-                lines.append(
-                    left_boundary.parallel_offset(distance=-floor(width * ratio), side="right", join_style=2))
+                laneline: LineString = left_boundary.parallel_offset(distance=floor(width * ratio), side="right",
+                                                                     join_style=2)
+                laneline_list = list(laneline.coords).copy()
+                laneline_list.reverse()
+                lines.append(LineString(laneline_list))
 
             lanes = []
             for seg in pairs(lines):
@@ -93,6 +96,8 @@ class Map:
             for lane in road["lanes"]:
                 left_boundary = lane["left_boundary"]
                 right_boundary = lane["right_boundary"]
+                print(left_boundary)
+                print(right_boundary)
                 plt.plot([p[0] for p in left_boundary],
                          [p[1] for p in left_boundary],
                          color="blue")
@@ -101,6 +106,8 @@ class Map:
                          color="green")
 
         plt.show()
+
+        return road_data
 
 
 

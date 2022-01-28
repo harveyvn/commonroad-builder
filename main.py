@@ -468,11 +468,8 @@ if __name__ == '__main__':
     #     network = Map(segments, image)
     #     network.draw(True)
     #     network.generate_road_with_ratio(lane_nodes, name)
-    # import functions to read xml file and visualize commonroad objects
-    from commonroad.common.file_reader import CommonRoadFileReader
-    from commonroad.visualization.mp_renderer import MPRenderer
 
 
 
-    exit()
+    # exit()
     cli()

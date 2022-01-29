@@ -81,40 +81,21 @@ class Visualization:
         return ax
 
     @staticmethod
-    def draw_histogram(ax, rotated_img, title, show_peaks: bool = False):
+    def draw_histogram(ax, rotated_img, xs_dict, peaks, title, show_peaks: bool = False):
         # Find a histogram
-        hist = None
-        cutoffs = [int(rotated_img.shape[0] / 2), 0]
-        for cutoff in cutoffs:
-            hist = np.sum(rotated_img[cutoff:, :], axis=0)
-            if hist.max() > 0:
-                break
-        if hist.max() == 0:
-            print('Unable to detect lane lines in this frame. Trying another frame!')
-            return False, np.array([]), np.array([])
-
         ax.title.set_text(title)
-        ax.plot([i for i in range(0, len(hist))], hist)
+        print(xs_dict)
+        xs = [i for i in range(0, rotated_img.shape[1])]
+        ys = [0 for i in range(0, rotated_img.shape[1])]
+        for k in xs_dict:
+            ys[k] = xs_dict[k]
+        ax.plot(xs, ys)
+        ax.plot(peaks, [ys[x] for x in peaks], '.', color="red")
 
-        if show_peaks:
-            threshold = 5500
-            peaks = []
-            for i, val in enumerate(hist):
-                if val > threshold:
-                    peaks.append(i)
-            print(f'Possible peaks: {peaks}')
-
-            tst = peaks.copy()
-            slices = list(slice_when(lambda x, y: y - x > 2, tst))
-            print(f'Slice peaks: {slices}')
-            peaks = []
-            for slice in slices:
-                chosen_peak = slice[0]
-                for ind in slice:
-                    if hist[ind] > hist[chosen_peak]:
-                        chosen_peak = ind
-                peaks.append(chosen_peak)
-            print(f'Chosen peaks: {peaks}')
-            for peak in peaks:
-                ax.plot(peak, hist[peak], '.', color="red")
+        # peaks_ys = [ys[x] for x in peaks]
+        # ax.set_ylim([0, max(peaks_ys)+10])
+        # ax.set_xlim([35, 50])
+        # ax.set_xlim([100, 115])
+        # ax.set_xlim([170, 185])
         return ax
+

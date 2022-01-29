@@ -12,6 +12,15 @@ from modules.roadlane.laneline import Laneline
 from modules.models import Road, LaneMarking
 
 
+viz_images = {
+    "masked_img": None,
+    "crop_img": None,
+    "rotated_img": None,
+    "xs_dict": {},
+    "peaks": []
+}
+
+
 class Analyzer:
     """
     The Analyzer class accepts extracted road data from CRISCE module, then search the possible position of
@@ -57,11 +66,13 @@ class Analyzer:
         cv2.fillPoly(mask, np.int32([roi_area]), 0)
         # Applying the mask to original image
         masked_img = cv2.bitwise_or(self.image, mask)
+        viz_images["masked_img"] = masked_img
 
         # Crop an image
         xmin = xmin if xmin > 0 else 0
         ymin = ymin if ymin > 0 else 0
         crop_img = masked_img[ymin:ymax, xmin:xmax]
+        viz_images["crop_img"] = crop_img
 
         # Rotate the crop image
         # Find the angle for rotation
@@ -70,19 +81,7 @@ class Analyzer:
         difference = 90 - angle(lineA, lineB)
         # Rotate our image by certain degrees around the center of the image
         rotated_img = imutils.rotate_bound(crop_img, -difference)
-
-        # Visualization: Draw a histogram to find the starting points of lane lines
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(2, 3, figsize=(16, 24))
-        # axs = [
-        #     self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
-        #     self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
-        #     self.visualization.draw_img(ax[0, 2], masked_img, "Step 03"),
-        #     self.visualization.draw_img(ax[1, 0], crop_img, "Step 04"),
-        #     self.visualization.draw_img(ax[1, 1], rotated_img, "Step 05"),
-        #     self.visualization.draw_histogram(ax[1, 2], rotated_img, "Step 06", True)
-        # ]
-        # plt.show()
+        viz_images["rotated_img"] = rotated_img
 
         self.road.angle = -difference
         rotated_lst = affinity.rotate(self.road.mid_line, self.road.angle, (0, 0))
@@ -154,6 +153,7 @@ class Analyzer:
         for line in valid_lines:
             xs_dict[line["i"]] = line["total"]
 
+        viz_images["xs_dict"] = xs_dict
         return xs_dict
 
     def categorize_laneline(self, lane_dict):
@@ -183,6 +183,7 @@ class Analyzer:
                 if lane_dict[x] > lane_dict[chosen_peak]:
                     chosen_peak = x
             peaks.append(chosen_peak)
+        viz_images["peaks"] = peaks
 
         # Left boundary is on the left hand side and right boundary is on the right hand side of the list
         lane_markings = list()
@@ -224,3 +225,18 @@ class Analyzer:
 
         # Assign the lanes to the road
         self.road.lane_markings = lane_markings
+
+    def visualize(self):
+        # Visualization: Draw a histogram to find the starting points of lane lines
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(2, 3, figsize=(16, 24))
+        axs = [
+            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
+            self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
+            self.visualization.draw_img(ax[0, 2], viz_images["masked_img"], "Step 03"),
+            self.visualization.draw_img(ax[1, 0], viz_images["crop_img"], "Step 04"),
+            self.visualization.draw_img(ax[1, 1], viz_images["rotated_img"], "Step 05"),
+            self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"],
+                                              viz_images["xs_dict"], viz_images["peaks"], "Step 06")
+        ]
+        plt.show()

@@ -96,8 +96,6 @@ class Map:
             for lane in road["lanes"]:
                 left_boundary = lane["left_boundary"]
                 right_boundary = lane["right_boundary"]
-                print(left_boundary)
-                print(right_boundary)
                 plt.plot([p[0] for p in left_boundary],
                          [p[1] for p in left_boundary],
                          color="blue")

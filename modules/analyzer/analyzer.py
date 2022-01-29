@@ -143,10 +143,13 @@ class Analyzer:
 
             if total > 0:
                 valid_lines.append({"i": i, "lst": lst, "total": total})
+            else:
+                invalid_lines.append({"i": i, "lst": lst, "total": total})
             i = i + 1
 
         # Debug:
-        # self.visualization.draw_searching(invalid_lines, valid_lines, rotated_img, True)
+        sorted_lines = (valid_lines + invalid_lines).copy()
+        self.visualization.draw_searching(sorted_lines, valid_lines, rotated_img, True)
 
         # Return a dictionary composing list of x values and their density values
         xs_dict = {}

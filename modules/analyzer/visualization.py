@@ -43,14 +43,26 @@ class Visualization:
         if is_save:
             fig.savefig(f'{title}.png', bbox_inches="tight")
 
-    def draw_searching(self, invalid_lines, valid_lines, image, is_save: bool = False):
-        for id, lines in enumerate([invalid_lines, valid_lines]):
-            title = "valid" if id > 0 else "invalid"
-            color = "blue" if id > 0 else "red"
+    def draw_searching(self, sorted_lines, valid_lines, image, is_save: bool = False):
+        for id, lines in enumerate([sorted_lines]):
+            title = "invalid"
+            color = "red"
             for viz in lines:
                 i, lst = viz["i"], viz["lst"]
                 self.draw_img_with_a_single_line(
-                    title=f'{i} {title}',
+                    title=f'{i}',
+                    lst=lst,
+                    image=image,
+                    color=color,
+                    is_save=is_save)
+
+        for id, lines in enumerate([valid_lines]):
+            title = "valid"
+            color = "blue"
+            for viz in lines:
+                i, lst = viz["i"], viz["lst"]
+                self.draw_img_with_a_single_line(
+                    title=f'{i}',
                     lst=lst,
                     image=image,
                     color=color,

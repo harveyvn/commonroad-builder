@@ -90,6 +90,16 @@ class Visualization:
     def draw_img(ax, masked_img, title):
         ax.title.set_text(title)
         ax.imshow(masked_img, cmap='gray')
+        ax = plt.gca().set_aspect('auto')
+        return ax
+
+    @staticmethod
+    def draw_img_1(ax, masked_img, title):
+        ax.title.set_text(title)
+        ax.imshow(masked_img, cmap='gray', origin="lower")
+        # p = 200
+        # ax.set_ylim([0, p])
+        # ax.set_xlim([240, 255])
         return ax
 
     @staticmethod
@@ -103,16 +113,15 @@ class Visualization:
         ax.plot(xs, ys)
         ax.plot(peaks, [ys[x] for x in peaks], '.', color="red")
 
-        # peaks_ys = [ys[x] for x in peaks]
-        # p = max(peaks_ys)+10
-        # ax.set_ylim([0, max(peaks_ys)+10])
-        # ax.plot([35, 50, 50, 35, 35], [p, p, 0, 0, p], '-', color="orange")
-        # ax.set_xlim([35, 50])
+        print(xs_dict)
 
-        # ax.plot([100, 115, 115, 100, 100], [p, p, 0, 0, p], '-', color="orange")
-        # ax.set_xlim([100, 115])
+        peaks_ys = [ys[x] for x in peaks]
+        p = max(peaks_ys) + 10
+        # ax.plot([-5, 10, 10, -5, -5], [p, p, 0, 0, p], '-', color="orange")
+        # ax.plot([120, 135, 135, 120, 120], [p, p, 0, 0, p], '-', color="orange")
+        # ax.plot([240, 255, 255, 240, 240], [p, p, 0, 0, p], '-', color="orange")
 
-        # ax.plot([170, 185, 185, 170, 170], [p, p, 0, 0, p], '-', color="orange")
-        # ax.set_xlim([170, 185])
+        # ax.set_ylim([0, max(peaks_ys)+20])
+        # ax.set_xlim([240, 255])
         return ax
 

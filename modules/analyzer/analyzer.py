@@ -128,7 +128,7 @@ class Analyzer:
             if len(checked_coords) < 3:
                 window_line = LineString(coords)
             else:
-                window_line = LineString(checked_coords[0:7])
+                window_line = LineString(checked_coords[0:10])
             coords = [(floor(p[0]), floor(p[1])) for p in list(window_line.coords)]
 
             # Compute the white density from a pixel image
@@ -159,7 +159,7 @@ class Analyzer:
         viz_images["xs_dict"] = xs_dict
         return xs_dict
 
-    def categorize_laneline(self, lane_dict):
+    def categorize_laneline(self, lane_dict, threshold=300):
         """
         Take the width of different lane lines and suggest the suitable type for each lane.
         The type might be: a single line, a dashed line, a double line or a double dashed line.
@@ -185,7 +185,8 @@ class Analyzer:
             for x in group:
                 if lane_dict[x] > lane_dict[chosen_peak]:
                     chosen_peak = x
-            peaks.append(chosen_peak)
+            if lane_dict[chosen_peak] > threshold:
+                peaks.append(chosen_peak)
         viz_images["peaks"] = peaks
 
         # Left boundary is on the left hand side and right boundary is on the right hand side of the list
@@ -224,7 +225,7 @@ class Analyzer:
             right_boundary_x = list(self.road.right_boundary.coords)[0][0]
             if left_boundary_x > right_boundary_x:
                 for i, lane in enumerate(lane_markings[1:-1]):
-                    lane.type = lane_markings[-1-i]
+                    lane.type = lane_markings[-1 - i]
 
         # Assign the lanes to the road
         self.road.lane_markings = lane_markings
@@ -238,7 +239,7 @@ class Analyzer:
             self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
             self.visualization.draw_img(ax[0, 2], viz_images["masked_img"], "Step 03"),
             self.visualization.draw_img(ax[1, 0], viz_images["crop_img"], "Step 04"),
-            self.visualization.draw_img(ax[1, 1], viz_images["rotated_img"], "Step 05"),
+            self.visualization.draw_img_1(ax[1, 1], viz_images["rotated_img"], "Step 05"),
             self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"],
                                               viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]

@@ -96,7 +96,6 @@ class Visualization:
     def draw_histogram(ax, rotated_img, xs_dict, peaks, title, show_peaks: bool = False):
         # Find a histogram
         ax.title.set_text(title)
-        print(xs_dict)
         xs = [i for i in range(0, rotated_img.shape[1])]
         ys = [0 for i in range(0, rotated_img.shape[1])]
         for k in xs_dict:
@@ -105,9 +104,15 @@ class Visualization:
         ax.plot(peaks, [ys[x] for x in peaks], '.', color="red")
 
         # peaks_ys = [ys[x] for x in peaks]
+        # p = max(peaks_ys)+10
         # ax.set_ylim([0, max(peaks_ys)+10])
+        # ax.plot([35, 50, 50, 35, 35], [p, p, 0, 0, p], '-', color="orange")
         # ax.set_xlim([35, 50])
+
+        # ax.plot([100, 115, 115, 100, 100], [p, p, 0, 0, p], '-', color="orange")
         # ax.set_xlim([100, 115])
+
+        # ax.plot([170, 185, 185, 170, 170], [p, p, 0, 0, p], '-', color="orange")
         # ax.set_xlim([170, 185])
         return ax
 

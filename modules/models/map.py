@@ -31,7 +31,7 @@ class Map:
                          [p[1] for p in list(lane.right_boundary.coords)],
                          color="green")
                 plt.show()
-                fig.savefig(f'{i}.png', bbox_inches="tight")
+                # fig.savefig(f'{i}.png', bbox_inches="tight")
                 i = i + 1
 
     def write_to_json(self):
@@ -103,6 +103,7 @@ class Map:
                          [p[1] for p in right_boundary],
                          color="green")
 
+        plt.gca().set_aspect('equal', 'box')
         plt.show()
 
         return road_data

@@ -6,6 +6,10 @@ class Constant:
         self.SINGLE_DASHED_LINE = 1
         self.DOUBLE_LINE = 2
         self.DOUBLE_DASHED_LINE = 3
+        self.CAR_LENGTH_SIM = 4.670000586694935
+        self.LINUX = "Linux"
+        self.DARWIN = "Darwin"
+        self.WINDOWS = "Windows"
         self.CRISCE_IMPACT_MODEL = {
             "front_left": [
                 "headlight_L", "hood", "fender_L", "bumper_F", "bumperbar_F", "suspension_F", "body_wagon"

@@ -230,7 +230,14 @@ def _generate_lane_marking(road_nodes, side, distance=3.9):
      3 Resample the spline at 10m distance
     """
     road_spine = LineString([(rn[0], rn[1]) for rn in road_nodes])
-    x, y = road_spine.parallel_offset(distance, side, resolution=16, join_style=1, mitre_limit=5.0).coords.xy
+    if side == "left":
+        x, y = road_spine.parallel_offset(distance, side, resolution=16, join_style=1, mitre_limit=5.0).coords.xy
+    else:
+        tmp_ls = road_spine.parallel_offset(distance, side, resolution=16, join_style=1, mitre_limit=5.0)
+        laneline_list = list(tmp_ls.coords).copy()
+        laneline_list.reverse()
+        x, y = LineString(laneline_list).coords.xy
+
     interpolated_points = interpolate([(p[0], p[1]) for p in zip(x, y)], sampling_unit=10)
     return [(p[0], p[1], 0, 0.1) for p in interpolated_points]
 

@@ -14,7 +14,7 @@ from shapely.geometry import LineString
 import modules.crisce.common as common
 from modules.models import LaneMarking
 from modules.constant import CONST
-from math import floor
+from math import floor, ceil
 
 
 class Simulation():
@@ -72,12 +72,12 @@ class Simulation():
 
         road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
         for i, lane in enumerate(self.lane_nodes):
-            left_marking_nodes = common.generate_left_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
+            left_marking_nodes = common.generate_left_marking(self.lane_nodes[i], self.lane_nodes[i][0][-1]/2)
             left_marking = Road('line_white', rid=f'{road_id[i]}_left_white')
             left_marking.nodes.extend(left_marking_nodes)
             scenario.add_road(left_marking)
 
-            right_marking_nodes = common.generate_right_marking(self.lane_nodes[i], floor(self.lane_nodes[i][0][-1]/2))
+            right_marking_nodes = common.generate_right_marking(left_marking_nodes, self.lane_nodes[i][0][-1])
             right_marking = Road('line_white', rid=f'{road_id[i]}_right_white')
             right_marking.nodes.extend(right_marking_nodes)
             scenario.add_road(right_marking)
@@ -85,12 +85,10 @@ class Simulation():
             if len(self.road_lanes[i].lane_markings) > 2:
                 internal_lane_markings: List[LaneMarking] = self.road_lanes[i].lane_markings
                 for idx, il in enumerate(internal_lane_markings[1:-1]):
-                    cm_nodes = common.generate_right_marking(left_marking_nodes, floor(il.ratio * self.lane_nodes[i][0][-1]))
-                    road_line = ""
+                    cm_nodes = common.generate_right_marking(left_marking_nodes, il.ratio * self.lane_nodes[i][0][-1])
+                    road_line = "line_dashed_long"
                     if il.type == CONST.SINGLE_LINE or il.type == CONST.SINGLE_DASHED_LINE:
-                        road_line = "line_yellow"
-                    else:
-                        road_line = "line_yellow_double"
+                        road_line = "line_dashed_short"
 
                     central_marking = Road(road_line, rid=f'{road_id[i]}_central_{idx}')
                     central_marking.nodes.extend(cm_nodes)

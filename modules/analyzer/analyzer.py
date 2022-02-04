@@ -3,6 +3,7 @@ import imutils
 import numpy as np
 from .visualization import Visualization
 from math import floor, ceil
+from typing import List
 from shapely import affinity
 from shapely.geometry import Point, LineString
 from modules import slice_when, angle
@@ -36,6 +37,129 @@ class Analyzer:
         self.image = image
         self.road = road
         self.visualization = Visualization(image, lanelines, road)
+
+    @staticmethod
+    def define_roi(xmin, xmax, ymin, ymax):
+        return np.array([[(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]], dtype=np.int32)
+
+    @staticmethod
+    def remove_out_of_range_lines(img, linestring: LineString):
+        step = 0
+        is_stop = False
+        # Define list contain out of range lines
+        oor_lines = list()
+
+        # Searching invalid lines
+        while is_stop is False:
+            window_line = translate_ls_to_new_origin(linestring, Point(step, 0))
+            if list(window_line.coords)[-1][1] < 0:
+                window_line = translate_ls_to_new_origin(linestring, Point(step, img.shape[0]))
+
+            # Check if x value of all points (from a line string)
+            # is in an x-axis range of a rotated image or not.
+            # Otherwise, the linestring is invalid.
+            invalid_line = False
+            for point in list(window_line.coords):
+                if point[0] < 0:
+                    invalid_line = True
+                    oor_lines.append({"i": step, "points": list(window_line.coords)})
+                    step = step + 1
+                    break
+
+            if invalid_line is False:
+                is_stop = True
+
+        first_x = step
+        return first_x, oor_lines
+
+    @staticmethod
+    def generate_window_line(point_x: int, img, linestring: LineString, num_point: int = 15):
+        window_line = translate_ls_to_new_origin(linestring, Point(point_x, 0))
+        if list(window_line.coords)[-1][1] < 0:
+            window_line = translate_ls_to_new_origin(linestring, Point(point_x, img.shape[0]))
+        # Remove points not in an image
+        coords, checked_coords = list(window_line.coords), []
+        for p in coords:
+            try:
+                if int(img[int(p[1]), int(p[0])]) > -1:
+                    checked_coords.append(p)
+            except IndexError:
+                pass
+
+        # Take first 7 points from a line string
+        if len(checked_coords) < 3:
+            return LineString(coords)
+        return LineString(checked_coords[0:num_point])
+
+    @staticmethod
+    def find_first_color_point(points: List, img):
+        starting_color_index = 0
+        for i, p in enumerate(points):
+            val_point = int(img[p[1], p[0]])
+            # print(i, val_point)
+            if starting_color_index == 0 and val_point > 0:
+                starting_color_index = i
+
+        # print("Starting index is ", starting_color_index)
+        return starting_color_index
+
+    @staticmethod
+    def analyze_line_type(points, img):
+        zeros, non_zeros = 0, 0
+        length = len(points)
+        for i, p in enumerate(points):
+            val = int(img[p[1], p[0]])
+            # print(i, val)
+            if val > 0:
+                non_zeros += 1
+            else:
+                zeros += 1
+
+        return length, non_zeros, zeros
+
+    def search_valid_lines(self, starting_x, img, linestring: LineString, num_points: int = 10):
+        first_x_valid = -1
+        starting_color_index = 0
+        valid_lines, invalid_lines = list(), list()
+
+        # Searching the valid lane ids from remaining lines
+        x = starting_x
+        while x < img.shape[1]:
+            expected_num_points = num_points + starting_color_index
+            window_line = self.generate_window_line(x, img, linestring, expected_num_points)
+            coords = [(ceil(p[0]), ceil(p[1])) for p in list(window_line.coords[starting_color_index:])]
+
+            # Compute the white density from a pixel image
+            points = list()
+            total = 0
+            for p in coords:
+                points.append(p)
+                try:
+                    total += int(img[p[1], p[0]])
+                except IndexError:
+                    pass
+
+            if total > 0:
+                # Look for index of the first point has color value bigger than 0 in the first valid line
+                # Take that index as a base index and use it on other lines to find line type
+                if first_x_valid == -1:
+                    first_x_valid = x
+                    starting_color_index = self.find_first_color_point(points, img)
+                    continue
+
+                length, non_zeros, zeros = self.analyze_line_type(points, img)
+                if zeros/length >= 0.8:
+                    invalid_lines.append({"i": x, "points": points})
+                else:
+                    line_type = "dash" if zeros/length > 0.28 else "cont"
+                    # print(f'{x}: {length} {non_zeros}/{length} {zeros}/{length}')
+                    valid_lines.append({"i": x, "points": points, "total": total,
+                                        "type": line_type, "percentage": zeros/length})
+            else:
+                invalid_lines.append({"i": x, "points": points})
+            x = x + 1
+
+        return valid_lines, invalid_lines
 
     def search_laneline(self):
         """
@@ -84,82 +208,25 @@ class Analyzer:
         viz_images["rotated_img"] = rotated_img
 
         self.road.angle = -difference
-        rotated_lst = affinity.rotate(self.road.mid_line, self.road.angle, (0, 0))
-        # Define variables:
-        # i is a x value, in range (0, rotated_img.shape[1]), aka an end of a rotated image x-axis
-        i = 0
-        is_stop = False
-        invalid_lines, valid_lines = list(), list()
+        rotated_lst = affinity.rotate(self.road.mid_line, -difference, (0, 0))
+        first_x, oor_lines = self.remove_out_of_range_lines(img=rotated_img, linestring=rotated_lst)
+        good_lines, bad_lines = self.search_valid_lines(starting_x=first_x, img=rotated_img, linestring=rotated_lst)
 
-        # Searching invalid lines
-        while is_stop is False:
-            window_line = translate_ls_to_new_origin(rotated_lst, Point(i, 0))
-            if list(window_line.coords)[-1][1] < 0:
-                window_line = translate_ls_to_new_origin(rotated_lst, Point(i, rotated_img.shape[0]))
-
-            # Check if x value of all points (from a line string)
-            # is in a x range of a rotated image or not. Otherwise, the linestring is invalid.
-            invalid_line = False
-            for p in list(window_line.coords):
-                if p[0] < 0:
-                    invalid_line = True
-                    invalid_lines.append({"i": i, "lst": list(window_line.coords)})
-                    i = i + 1
-                    break
-
-            if invalid_line is False:
-                is_stop = True
-
-        # Searching the valid lane ids from remaining lines
-        while i < rotated_img.shape[1]:
-            window_line = translate_ls_to_new_origin(rotated_lst, Point(i, 0))
-            if list(window_line.coords)[-1][1] < 0:
-                window_line = translate_ls_to_new_origin(rotated_lst, Point(i, rotated_img.shape[0]))
-            # Remove a point not in a rotated image
-            coords, checked_coords = list(window_line.coords[0:20]), []
-            for p in coords:
-                try:
-                    if int(rotated_img[int(p[1]), int(p[0])]) > -1:
-                        checked_coords.append(p)
-                except IndexError:
-                    pass
-
-            # Take first 7 points from a line string
-            if len(checked_coords) < 3:
-                window_line = LineString(coords)
-            else:
-                window_line = LineString(checked_coords[0:10])
-            coords = [(floor(p[0]), floor(p[1])) for p in list(window_line.coords)]
-
-            # Compute the white density from a pixel image
-            lst = list()
-            total = 0
-            for p in coords:
-                lst.append(p)
-                try:
-                    total += int(rotated_img[p[1], p[0]])
-                except IndexError:
-                    pass
-
-            if total > 0:
-                valid_lines.append({"i": i, "lst": lst, "total": total})
-            else:
-                invalid_lines.append({"i": i, "lst": lst, "total": total})
-            i = i + 1
+        if len(oor_lines) > 0:
+            bad_lines = [bad_lines.append(line) for line in oor_lines]
 
         # Debug:
-        sorted_lines = (valid_lines + invalid_lines).copy()
-        # self.visualization.draw_searching(sorted_lines, valid_lines, rotated_img, True)
+        self.visualization.draw_searching([], good_lines, rotated_img, True)
 
         # Return a dictionary composing list of x values and their density values
         xs_dict = {}
-        for line in valid_lines:
+        for line in good_lines:
             xs_dict[line["i"]] = line["total"]
 
         viz_images["xs_dict"] = xs_dict
-        return xs_dict
+        return xs_dict, good_lines
 
-    def categorize_laneline(self, lane_dict, threshold=300):
+    def categorize_laneline(self, lane_dict, lane_markings, threshold=300):
         """
         Take the width of different lane lines and suggest the suitable type for each lane.
         The type might be: a single line, a dashed line, a double line or a double dashed line.
@@ -178,57 +245,18 @@ class Analyzer:
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
 
-        # Compare a total value of each x value to find a peak
-        peaks = []
         for group in groups:
-            chosen_peak = group[0]
-            for x in group:
-                if lane_dict[x] > lane_dict[chosen_peak]:
-                    chosen_peak = x
-            if lane_dict[chosen_peak] > threshold:
-                peaks.append(chosen_peak)
-        viz_images["peaks"] = peaks
-
-        # Left boundary is on the left hand side and right boundary is on the right hand side of the list
-        lane_markings = list()
-        road_width = peaks[-1] - peaks[0]
-        for i, peak in enumerate(peaks):
-            # Compute the ratio of the lane from the left boundary - aka blue line
-            ratio = ((peak - peaks[0]) / road_width)
-            width = groups[i][-1] - groups[i][0]
-            lane_markings.append(LaneMarking(ratio, width))
-
-        # Find the minimum lane width
-        widths = set()
-        for lane in lane_markings:
-            widths.add(lane.width)
-
-        # Categorize the lane type based on its width
-        for i, lane in enumerate(lane_markings):
-            # Left or right boundary.
-            if i == 0 or i == len(lane_markings) - 1:
-                if min(widths) <= lane.width < 1.8 * min(widths):
-                    lane.type = CONST.SINGLE_LINE
-                else:
-                    lane.type = CONST.DOUBLE_LINE
-            else:
-                # Other lanes.
-                if min(widths) <= lane.width < 1.8 * min(widths):
-                    lane.type = CONST.SINGLE_DASHED_LINE
-                else:
-                    lane.type = CONST.DOUBLE_DASHED_LINE
-
-        # Flip the case when an angle between a middle line and Ox > -1 and < 1 degree
-        # and the left x is greater than the right x.
-        if -1 < self.road.angle < 1:
-            left_boundary_x = list(self.road.left_boundary.coords)[0][0]
-            right_boundary_x = list(self.road.right_boundary.coords)[0][0]
-            if left_boundary_x > right_boundary_x:
-                for i, lane in enumerate(lane_markings[1:-1]):
-                    lane.type = lane_markings[-1 - i]
+            lines = []
+            percs = []
+            for line_id in group:
+                for line in lane_markings:
+                    if line['i'] == line_id:
+                        lines.append(line["type"])
+                        percs.append(line["percentage"])
+            print(f'{group} : {lines} : {percs}')
 
         # Assign the lanes to the road
-        self.road.lane_markings = lane_markings
+        self.road.lane_markings = []
 
     def visualize(self):
         # Visualization: Draw a histogram to find the starting points of lane lines
@@ -240,7 +268,6 @@ class Analyzer:
             self.visualization.draw_img(ax[0, 2], viz_images["masked_img"], "Step 03"),
             self.visualization.draw_img(ax[1, 0], viz_images["crop_img"], "Step 04"),
             self.visualization.draw_img_1(ax[1, 1], viz_images["rotated_img"], "Step 05"),
-            self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"],
-                                              viz_images["xs_dict"], viz_images["peaks"], "Step 06")
+            # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]
         plt.show()

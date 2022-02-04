@@ -60,7 +60,7 @@ class Visualization:
             title = "valid"
             color = "blue"
             for viz in lines:
-                i, lst = viz["i"], viz["lst"]
+                i, lst = viz["i"], viz["points"]
                 self.draw_img_with_a_single_line(
                     title=f'{i}',
                     lst=lst,
@@ -96,7 +96,7 @@ class Visualization:
     @staticmethod
     def draw_img_1(ax, masked_img, title):
         ax.title.set_text(title)
-        ax.imshow(masked_img, cmap='gray', origin="lower")
+        ax.imshow(masked_img, cmap='gray')
         # p = 200
         # ax.set_ylim([0, p])
         # ax.set_xlim([240, 255])

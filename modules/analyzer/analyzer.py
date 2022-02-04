@@ -108,7 +108,10 @@ class Analyzer:
         zeros, non_zeros = 0, 0
         length = len(points)
         for i, p in enumerate(points):
-            val = int(img[p[1], p[0]])
+            try:
+                val = int(img[p[1], p[0]])
+            except IndexError:
+                val = 0
             # print(i, val)
             if val > 0:
                 non_zeros += 1
@@ -216,7 +219,7 @@ class Analyzer:
             bad_lines = [bad_lines.append(line) for line in oor_lines]
 
         # Debug:
-        self.visualization.draw_searching([], good_lines, rotated_img, True)
+        # self.visualization.draw_searching([], good_lines, rotated_img, True)
 
         # Return a dictionary composing list of x values and their density values
         xs_dict = {}

@@ -2,6 +2,7 @@ class Constant:
     def __init__(self):
         self.ROAD_CURVE_OR_STRAIGHT = 0
         self.ROAD_INTERSECTION = 1
+        self.ROAD_PARALLEL = 2
         self.SINGLE_LINE = 0
         self.SINGLE_DASHED_LINE = 1
         self.DOUBLE_LINE = 2

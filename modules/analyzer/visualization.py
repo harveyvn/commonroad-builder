@@ -94,15 +94,6 @@ class Visualization:
         return ax
 
     @staticmethod
-    def draw_img_1(ax, masked_img, title):
-        ax.title.set_text(title)
-        ax.imshow(masked_img, cmap='gray')
-        # p = 200
-        # ax.set_ylim([0, p])
-        # ax.set_xlim([240, 255])
-        return ax
-
-    @staticmethod
     def draw_histogram(ax, rotated_img, xs_dict, peaks, title, show_peaks: bool = False):
         # Find a histogram
         ax.title.set_text(title)

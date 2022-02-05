@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 
-def create(img, point_x: int, ls: LineString, num_points: int = 15):
+def create(img: np.array, point_x: int, ls: LineString, num_points: int = 15):
     """
     Generate the sliding window line.
 
@@ -32,9 +32,12 @@ def create(img, point_x: int, ls: LineString, num_points: int = 15):
     return LineString(checked_coords[0:num_points])
 
 
-def find(points: List, img):
+def find(points: List, img: np.array):
     """
-    Find the first non-zero point which actually reveals the color value.
+    Find the first non-zero point which actually reveals the color value. E.g:
+        List:  [(x1,y1), (x2,y2), (x3,y3), (x4,y4)]
+        Image Value: [0, 0, 255, 255]
+        Return index 2
 
     Args:
         points (List): list of points extracting from linestring.
@@ -51,7 +54,7 @@ def find(points: List, img):
     return starting_color_index
 
 
-def analyze(points: List, img):
+def analyze(points: List, img: np.array):
     """
     Extract number of points, number of non-zero points and zero points.
 

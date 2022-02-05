@@ -19,9 +19,9 @@ class LinearLane(RoadLane):
         right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width + buffer), side="right", join_style=2)
         left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width + buffer), side="left", join_style=2)
         segment = Segment(mid_line=mid_line,
-                    left_boundary=left_boundary,
-                    right_boundary=right_boundary,
-                    width=lane_width)
+                          left_boundary=left_boundary,
+                          right_boundary=right_boundary,
+                          width=lane_width)
 
         baselines, segments = [laneline], [segment]
         return image, baselines, segments

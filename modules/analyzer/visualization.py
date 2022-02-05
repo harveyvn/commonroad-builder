@@ -94,12 +94,25 @@ class Visualization:
         return ax
 
     @staticmethod
-    def draw_img_1(ax, masked_img, title):
+    def draw_lines_on_image(ax, img, lst, title, lines):
         ax.title.set_text(title)
-        ax.imshow(masked_img, cmap='gray')
-        # p = 200
-        # ax.set_ylim([0, p])
-        # ax.set_xlim([240, 255])
+        ax.imshow(img, cmap='gray')
+        for i, line in enumerate(lines):
+            ax.plot([p[0] for p in lst[i].coords],
+                    [p[1] for p in lst[i].coords],
+                    linewidth=4 if line.num == "double" else 1,
+                    linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
+        ax.set_aspect("auto")
+        return ax
+
+    @staticmethod
+    def draw_segment_lines(ax, lst, title, lines):
+        ax.title.set_text(title)
+        for i, line in enumerate(lines):
+            ax.plot([p[0] for p in lst[i].coords],
+                    [p[1] for p in lst[i].coords],
+                    linewidth=4 if line.num == "double" else 1,
+                    linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
         return ax
 
     @staticmethod

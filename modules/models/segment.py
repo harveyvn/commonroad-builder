@@ -5,18 +5,21 @@ from ..common import pairs, reverse_geom
 
 
 class Segment:
-    def __init__(self, mid_line: LineString, width: float = 0, road_id: int = 0, reversed: bool = False,
-                 angle: float = 0, left_boundary: LineString = None, right_boundary: LineString = None):
+    def __init__(self, kind, mid_line: LineString, width: float = 0, road_id: int = 0, reversed: bool = False,
+                 left_boundary: LineString = None, right_boundary: LineString = None):
         self.id = road_id
+        self.kind = kind
         self.left_boundary = left_boundary
         self.right_boundary = right_boundary
         self.mid_line = mid_line
         self.width = width
         self.poly = Polygon([*list(left_boundary.coords), *list(right_boundary.coords)])
-        self.angle = angle
         self.reversed = reversed
         self.lane_markings: [LaneMarking] = []
         self.lanes: [Lane] = []
+        self.angle: float = 0
+        self.is_horizontal = False
+        self.is_vertical = False
 
     def generate_lanes(self):
         lines = []

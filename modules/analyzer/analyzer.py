@@ -12,14 +12,16 @@ from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
-from modules.models import Segment, LaneMarking
+from modules.models import Segment, Line
 
 viz_images = {
     "masked_img": None,
     "crop_img": None,
     "rotated_img": None,
-    "xs_dict": {},
-    "peaks": []
+    "lines": [],
+    "peaks": [],
+    "before_rotate": [],
+    "after_rotate": []
 }
 
 
@@ -40,10 +42,11 @@ class Analyzer:
         self.visualization = Visualization(image, lanelines, segment)
         self.rotated_img = None
         self.rotated_ls = None
+        self.angle = 0
 
     def del_oor_lines(self):
         # Define list contain out of range lines
-        oor_lines = list()
+        oor_lines = dict()
         step, stop = 0, False
         img, ls = self.rotated_img, self.rotated_ls
 
@@ -60,7 +63,7 @@ class Analyzer:
             for point in list(window_line.coords):
                 if point[0] < 0:
                     invalid_line = True
-                    oor_lines.append({"i": step, "points": list(window_line.coords)})
+                    oor_lines[step] = Winline(id=step, points=list(window_line.coords))
                     step = step + 1
                     break
 
@@ -70,7 +73,7 @@ class Analyzer:
         return step, oor_lines
 
     def find_lines(self, starting_x, num_points: int = 10):
-        good_lines, bad_lines = list(), list()
+        good_lines, bad_lines = dict(), dict()
         first_x_valid, starting_color_index = -1, 0
         img, ls = self.rotated_img, self.rotated_ls
 
@@ -93,7 +96,7 @@ class Analyzer:
             if total > 0:
                 length, non_zeros, zeros = analyze(points=points, img=img)
                 if zeros / length >= CONST.MAX_PERCENTAGE_ZEROS:
-                    bad_lines.append(Winline(id=x, points=points))
+                    bad_lines[x] = Winline(id=x, points=list(window_line.coords))
                 else:
                     # Look for index of the first point has color value bigger than 0 in the first valid line
                     # Take that index as a base index and use it on other lines to find line type
@@ -101,9 +104,9 @@ class Analyzer:
                         first_x_valid = x
                         starting_color_index = find(points=points, img=img)
                         continue
-                    good_lines.append(Winline(id=x, points=points, total=total, zero_perc=zeros/length))
+                    good_lines[x] = Winline(id=x, points=points, total=total, zero_perc=zeros / length)
             else:
-                bad_lines.append(Winline(id=x, points=points))
+                bad_lines[x] = Winline(id=x, points=list(window_line.coords))
             x = x + 1
 
         return good_lines, bad_lines
@@ -154,27 +157,22 @@ class Analyzer:
 
         # Rotate the baseline by certain degree following the image rotation
         self.rotated_ls = affinity.rotate(self.segment.mid_line, -difference, (0, 0))
+        self.angle = -difference
 
         # Find the starting valid x, so that the window line will not be out of range e.g. oor
         first_x, oor_lines = self.del_oor_lines()
         good_lines, bad_lines = self.find_lines(starting_x=first_x)
 
         # Debug:
-        # if len(oor_lines) > 0:
+        # if len(oor_lines.keys()) > 0:
         #     bad_lines = [bad_lines.append(line) for line in oor_lines]
         # self.visualization.draw_searching(bad_lines, good_lines, self.rotated_img, True)
 
-        # Return a dictionary composing list of x values and their density values
-        xs_dict = {}
-        for line in good_lines:
-            xs_dict[line.id] = line.total
-
         viz_images["crop_img"] = crop_img
         viz_images["rotated_img"] = self.rotated_img
-        viz_images["xs_dict"] = xs_dict
-        return xs_dict, good_lines
+        return good_lines
 
-    def categorize_laneline(self, lane_dict, lane_markings, threshold=300):
+    def categorize_laneline(self, lane_dict, threshold=300):
         """
         Take the width of different lane lines and suggest the suitable type for each lane.
         The type might be: a single line, a dashed line, a double line or a double dashed line.
@@ -192,30 +190,39 @@ class Analyzer:
         """
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
-
-        for group in groups:
-            lines = []
-            percs = []
-            for line_id in group:
-                for line in lane_markings:
-                    if line.id == line_id:
-                        lines.append(line.pattern)
-                        percs.append(line.zero_perc)
-            print(f'{group} : {lines} : {percs}')
+        # Generating corresponding lines
+        lines = [Line(dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
 
         # Assign the lanes to the road
-        self.segment.lane_markings = []
+
+        if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
+            pass
+        elif self.segment.kind == CONST.ROAD_PARALLEL:
+            first, last = self.rotated_ls.boundary
+            for i, line in enumerate(lines):
+                ls = translate_ls_to_new_origin(self.rotated_ls, Point(line.get_peak(), first.y))
+                lsr = affinity.rotate(ls, -self.angle, (0, 0))
+                viz_images["before_rotate"].append(ls)
+                viz_images["after_rotate"].append(lsr)
+
+        viz_images["lines"] = lines
 
     def visualize(self):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(2, 3, figsize=(16, 24))
+        fig, ax = plt.subplots(4, 2, figsize=(16, 24))
         axs = [
-            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
-            self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
-            self.visualization.draw_img(ax[0, 2], viz_images["masked_img"], "Step 03"),
-            self.visualization.draw_img(ax[1, 0], viz_images["crop_img"], "Step 04"),
-            self.visualization.draw_img_1(ax[1, 1], viz_images["rotated_img"], "Step 05"),
+            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01: Baseline"),
+            self.visualization.draw_img_with_roi(ax[0, 1], "Step 02: ROI"),
+            self.visualization.draw_img(ax[1, 0], viz_images["masked_img"], "Step 03: Masked"),
+            self.visualization.draw_img(ax[1, 1], viz_images["crop_img"], "Step 04: Crop"),
+            self.visualization.draw_img(ax[2, 0], viz_images["rotated_img"], "Step 05: Rotate"),
+            self.visualization.draw_lines_on_image(ax[2, 1], viz_images["rotated_img"], viz_images["before_rotate"],
+                                                   "Step 06", viz_images["lines"]),
+            self.visualization.draw_lines_on_image(ax[3, 0], self.image, viz_images["after_rotate"], "Step 07",
+                                                   viz_images["lines"]),
+            self.visualization.draw_segment_lines(ax[3, 1], viz_images["after_rotate"], "Step 08",
+                                                  viz_images["lines"])
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]
         plt.show()

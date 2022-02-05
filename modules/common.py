@@ -97,18 +97,18 @@ def find_left_right_boundaries(image, line):
     diff = angle(lineA, lineB)
     lefts, rights = [[], []], [[], []]
 
-    is_parallel = True if -2 <= diff <= 2 else False
-    is_rectangle = True if 88 <= diff <= 92 else False
+    is_horizontal = True if -2 <= diff <= 2 else False
+    is_vertical = True if 88 <= diff <= 92 else False
 
     xmax_img, ymax_img = image.shape[1], image.shape[0]
-    if is_parallel:  # // (0, 0), (1, 0)
+    if is_horizontal:  # // (0, 0), (1, 0)
         lefts = [[a.x, 0], [b.x, 0]]
         rights = [[b.x, ymax_img], [a.x, ymax_img]]
         if a.x > b.x:  # // (1, 0), (0, 0)
             lefts.reverse()
             rights.reverse()
 
-    if is_rectangle:  # // (0, 0), (0, 1)
+    if is_vertical:  # // (0, 0), (0, 1)
         lefts = [[xmax_img, a.y], [xmax_img, b.y]]
         rights = [[0, b.y], [0, a.y]]
         if a.y > b.y:  # // (0, 1), (0, 0)

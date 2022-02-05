@@ -19,7 +19,9 @@ viz_images = {
     "crop_img": None,
     "rotated_img": None,
     "xs_dict": {},
-    "peaks": []
+    "peaks": [],
+    "before_rotate": [],
+    "after_rotate": []
 }
 
 
@@ -40,6 +42,7 @@ class Analyzer:
         self.visualization = Visualization(image, lanelines, segment)
         self.rotated_img = None
         self.rotated_ls = None
+        self.angle = 0
 
     def del_oor_lines(self):
         # Define list contain out of range lines
@@ -154,6 +157,7 @@ class Analyzer:
 
         # Rotate the baseline by certain degree following the image rotation
         self.rotated_ls = affinity.rotate(self.segment.mid_line, -difference, (0, 0))
+        self.angle = -difference
 
         # Find the starting valid x, so that the window line will not be out of range e.g. oor
         first_x, oor_lines = self.del_oor_lines()
@@ -164,17 +168,11 @@ class Analyzer:
         #     bad_lines = [bad_lines.append(line) for line in oor_lines]
         # self.visualization.draw_searching(bad_lines, good_lines, self.rotated_img, True)
 
-        # Return a dictionary composing list of x values and their density values
-        xs_dict = {}
-        for k, v in good_lines.items():
-            xs_dict[k] = v.total
-
         viz_images["crop_img"] = crop_img
         viz_images["rotated_img"] = self.rotated_img
-        viz_images["xs_dict"] = xs_dict
-        return xs_dict, good_lines
+        return good_lines
 
-    def categorize_laneline(self, lane_dict, lane_markings, threshold=300):
+    def categorize_laneline(self, lane_dict, threshold=300):
         """
         Take the width of different lane lines and suggest the suitable type for each lane.
         The type might be: a single line, a dashed line, a double line or a double dashed line.
@@ -192,14 +190,54 @@ class Analyzer:
         """
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
+        # Generating corresponding lines
+        lines = [Line(dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
 
-        lines = []
-        for group in groups:
-            print(Line(dict(filter(lambda i: i[0] in group, lane_markings.items()))))
-            print("=====")
+        for line in lines:
+            print(line.num, line.pattern, line.get_peak())
 
+        print(self.segment.kind)
+        ls = []
+        rls = []
         # Assign the lanes to the road
         self.segment.lane_markings = []
+
+        if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
+            pass
+        elif self.segment.kind == CONST.ROAD_PARALLEL:
+            first, last = self.rotated_ls.boundary
+            for i, line in enumerate(lines):
+                ls = translate_ls_to_new_origin(self.rotated_ls, Point(line.get_peak(), first.y))
+                lsr = affinity.rotate(ls, -self.angle, (0, 0))
+                viz_images["before_rotate"].append(ls)
+                viz_images["after_rotate"].append(lsr)
+
+
+        lsts = []
+        import matplotlib.pyplot as plt
+        plt.imshow(self.rotated_img, cmap='gray')
+
+        first, last = self.rotated_ls.boundary
+        for i, l in enumerate(lines):
+            ls = translate_ls_to_new_origin(self.rotated_ls, Point(l.get_peak(), first.y))
+            plt.plot([p[0] for p in ls.coords],
+                     [p[1] for p in ls.coords],
+                     linewidth=3 if l.num == "double" else 1,
+                     linestyle=(0, (5, 10)) if l.pattern == "dashed" else "solid")
+            lsts.append(ls)
+            print(l.num, l.pattern, l.get_peak())
+
+        plt.gca().set_aspect("auto")
+        plt.show()
+        plt.imshow(self.image, cmap='gray')
+        for i, l in enumerate(lsts):
+            line = lines[i]
+            ls = affinity.rotate(l, -self.angle, (0, 0))
+            plt.plot([p[0] for p in ls.coords],
+                     [p[1] for p in ls.coords],
+                     linewidth=3 if line.num == "double" else 1,
+                     linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
+        plt.show()
 
     def visualize(self):
         # Visualization: Draw a histogram to find the starting points of lane lines
@@ -210,7 +248,7 @@ class Analyzer:
             self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
             self.visualization.draw_img(ax[0, 2], viz_images["masked_img"], "Step 03"),
             self.visualization.draw_img(ax[1, 0], viz_images["crop_img"], "Step 04"),
-            self.visualization.draw_img_1(ax[1, 1], viz_images["rotated_img"], "Step 05"),
+            self.visualization.draw_img(ax[1, 1], viz_images["rotated_img"], "Step 05"),
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]
         plt.show()

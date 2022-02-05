@@ -43,7 +43,7 @@ class Analyzer:
 
     def del_oor_lines(self):
         # Define list contain out of range lines
-        oor_lines = list()
+        oor_lines = dict()
         step, stop = 0, False
         img, ls = self.rotated_img, self.rotated_ls
 
@@ -60,7 +60,7 @@ class Analyzer:
             for point in list(window_line.coords):
                 if point[0] < 0:
                     invalid_line = True
-                    oor_lines.append({"i": step, "points": list(window_line.coords)})
+                    oor_lines[step] = Winline(id=step, points=list(window_line.coords))
                     step = step + 1
                     break
 
@@ -70,7 +70,7 @@ class Analyzer:
         return step, oor_lines
 
     def find_lines(self, starting_x, num_points: int = 10):
-        good_lines, bad_lines = list(), list()
+        good_lines, bad_lines = dict(), dict()
         first_x_valid, starting_color_index = -1, 0
         img, ls = self.rotated_img, self.rotated_ls
 
@@ -93,7 +93,7 @@ class Analyzer:
             if total > 0:
                 length, non_zeros, zeros = analyze(points=points, img=img)
                 if zeros / length >= CONST.MAX_PERCENTAGE_ZEROS:
-                    bad_lines.append(Winline(id=x, points=points))
+                    bad_lines[x] = Winline(id=x, points=list(window_line.coords))
                 else:
                     # Look for index of the first point has color value bigger than 0 in the first valid line
                     # Take that index as a base index and use it on other lines to find line type
@@ -101,9 +101,9 @@ class Analyzer:
                         first_x_valid = x
                         starting_color_index = find(points=points, img=img)
                         continue
-                    good_lines.append(Winline(id=x, points=points, total=total, zero_perc=zeros/length))
+                    good_lines[x] = Winline(id=x, points=points, total=total, zero_perc=zeros/length)
             else:
-                bad_lines.append(Winline(id=x, points=points))
+                bad_lines[x] = Winline(id=x, points=list(window_line.coords))
             x = x + 1
 
         return good_lines, bad_lines
@@ -160,14 +160,14 @@ class Analyzer:
         good_lines, bad_lines = self.find_lines(starting_x=first_x)
 
         # Debug:
-        # if len(oor_lines) > 0:
+        # if len(oor_lines.keys()) > 0:
         #     bad_lines = [bad_lines.append(line) for line in oor_lines]
         # self.visualization.draw_searching(bad_lines, good_lines, self.rotated_img, True)
 
         # Return a dictionary composing list of x values and their density values
         xs_dict = {}
-        for line in good_lines:
-            xs_dict[line.id] = line.total
+        for k, v in good_lines.items():
+            xs_dict[k] = v.total
 
         viz_images["crop_img"] = crop_img
         viz_images["rotated_img"] = self.rotated_img
@@ -196,11 +196,9 @@ class Analyzer:
         for group in groups:
             lines = []
             percs = []
-            for line_id in group:
-                for line in lane_markings:
-                    if line.id == line_id:
-                        lines.append(line.pattern)
-                        percs.append(line.zero_perc)
+            for i in group:
+                lines.append(lane_markings[i].pattern)
+                percs.append(lane_markings[i].zero_perc)
             print(f'{group} : {lines} : {percs}')
 
         # Assign the lanes to the road

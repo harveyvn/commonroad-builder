@@ -12,7 +12,7 @@ from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
-from modules.models import Segment, LaneMarking
+from modules.models import Segment, Line
 
 viz_images = {
     "masked_img": None,
@@ -101,7 +101,7 @@ class Analyzer:
                         first_x_valid = x
                         starting_color_index = find(points=points, img=img)
                         continue
-                    good_lines[x] = Winline(id=x, points=points, total=total, zero_perc=zeros/length)
+                    good_lines[x] = Winline(id=x, points=points, total=total, zero_perc=zeros / length)
             else:
                 bad_lines[x] = Winline(id=x, points=list(window_line.coords))
             x = x + 1
@@ -193,13 +193,10 @@ class Analyzer:
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
 
+        lines = []
         for group in groups:
-            lines = []
-            percs = []
-            for i in group:
-                lines.append(lane_markings[i].pattern)
-                percs.append(lane_markings[i].zero_perc)
-            print(f'{group} : {lines} : {percs}')
+            print(Line(dict(filter(lambda i: i[0] in group, lane_markings.items()))))
+            print("=====")
 
         # Assign the lanes to the road
         self.segment.lane_markings = []

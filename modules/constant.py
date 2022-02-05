@@ -10,8 +10,12 @@ class Constant:
         self.CAR_LENGTH_SIM = 4.670000586694935
         self.MAX_PERCENTAGE_ZEROS = 0.8
         self.MAX_PERCENTAGE_ZEROS_CONT = 0.28
-        self.DASHED_LINE = "dashed"
-        self.CONT_LINE = "cont"
+        self.DASHED = "dashed"
+        self.SOLID = "solid"
+        self.DASHED_INT = 0
+        self.SOLID_INT = 1
+        self.SINGLE = "single"
+        self.DOUBLE = "double"
         self.INVALID_LINE = -1
         self.LINUX = "Linux"
         self.DARWIN = "Darwin"

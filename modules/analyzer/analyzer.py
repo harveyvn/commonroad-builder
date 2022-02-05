@@ -18,7 +18,7 @@ viz_images = {
     "masked_img": None,
     "crop_img": None,
     "rotated_img": None,
-    "xs_dict": {},
+    "lines": [],
     "peaks": [],
     "before_rotate": [],
     "after_rotate": []
@@ -193,14 +193,7 @@ class Analyzer:
         # Generating corresponding lines
         lines = [Line(dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
 
-        for line in lines:
-            print(line.num, line.pattern, line.get_peak())
-
-        print(self.segment.kind)
-        ls = []
-        rls = []
         # Assign the lanes to the road
-        self.segment.lane_markings = []
 
         if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
             pass
@@ -212,43 +205,24 @@ class Analyzer:
                 viz_images["before_rotate"].append(ls)
                 viz_images["after_rotate"].append(lsr)
 
-
-        lsts = []
-        import matplotlib.pyplot as plt
-        plt.imshow(self.rotated_img, cmap='gray')
-
-        first, last = self.rotated_ls.boundary
-        for i, l in enumerate(lines):
-            ls = translate_ls_to_new_origin(self.rotated_ls, Point(l.get_peak(), first.y))
-            plt.plot([p[0] for p in ls.coords],
-                     [p[1] for p in ls.coords],
-                     linewidth=3 if l.num == "double" else 1,
-                     linestyle=(0, (5, 10)) if l.pattern == "dashed" else "solid")
-            lsts.append(ls)
-            print(l.num, l.pattern, l.get_peak())
-
-        plt.gca().set_aspect("auto")
-        plt.show()
-        plt.imshow(self.image, cmap='gray')
-        for i, l in enumerate(lsts):
-            line = lines[i]
-            ls = affinity.rotate(l, -self.angle, (0, 0))
-            plt.plot([p[0] for p in ls.coords],
-                     [p[1] for p in ls.coords],
-                     linewidth=3 if line.num == "double" else 1,
-                     linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
-        plt.show()
+        viz_images["lines"] = lines
 
     def visualize(self):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(2, 3, figsize=(16, 24))
+        fig, ax = plt.subplots(4, 2, figsize=(16, 24))
         axs = [
-            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01"),
-            self.visualization.draw_img_with_roi(ax[0, 1], "Step 02"),
-            self.visualization.draw_img(ax[0, 2], viz_images["masked_img"], "Step 03"),
-            self.visualization.draw_img(ax[1, 0], viz_images["crop_img"], "Step 04"),
-            self.visualization.draw_img(ax[1, 1], viz_images["rotated_img"], "Step 05"),
+            self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01: Baseline"),
+            self.visualization.draw_img_with_roi(ax[0, 1], "Step 02: ROI"),
+            self.visualization.draw_img(ax[1, 0], viz_images["masked_img"], "Step 03: Masked"),
+            self.visualization.draw_img(ax[1, 1], viz_images["crop_img"], "Step 04: Crop"),
+            self.visualization.draw_img(ax[2, 0], viz_images["rotated_img"], "Step 05: Rotate"),
+            self.visualization.draw_lines_on_image(ax[2, 1], viz_images["rotated_img"], viz_images["before_rotate"],
+                                                   "Step 06", viz_images["lines"]),
+            self.visualization.draw_lines_on_image(ax[3, 0], self.image, viz_images["after_rotate"], "Step 07",
+                                                   viz_images["lines"]),
+            self.visualization.draw_segment_lines(ax[3, 1], viz_images["after_rotate"], "Step 08",
+                                                  viz_images["lines"])
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]
         plt.show()

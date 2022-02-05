@@ -1,31 +1,19 @@
-from . import RoadLane
+from .creator import RoadLane
 from .laneline import Laneline
-from math import ceil
-from modules.models import Road
+from shapely.geometry import LineString
+from modules.models import Segment
+from modules.common import find_left_right_boundaries
 
 
 class ParallelLane(RoadLane):
-
     def process(self):
-        print(self.params)
-        exit()
-        lane_widths = self.params["lane_widths"]
-        lengths = self.params["lengths"]
-        image = self.params["image"]
+        baseline = Laneline(lane_id=0, coords=self.params["roads"][0], width=0)
+        lefts, rights, diff = find_left_right_boundaries(self.params["image"], baseline.get_line())
 
-        baselines = []
-        for i, coord in enumerate(self.params["roads"]):
-            baselines.append(Laneline(lane_id=i, coords=coord, width=lane_widths[i] / 2))
+        segment = Segment(road_id=baseline.id,
+                          left_boundary=LineString(lefts),
+                          right_boundary=LineString(rights),
+                          mid_line=baseline.get_linestring(),
+                          angle=diff)
 
-        segments = []
-        for idx, laneline in enumerate(baselines):
-            mid_line = laneline.get_linestring()
-            right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
-            left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
-            segments.append(Road(road_id=laneline.id,
-                                 mid_line=mid_line,
-                                 left_boundary=left_boundary,
-                                 right_boundary=right_boundary,
-                                 width=lane_widths[laneline.id]))
-
-        return image, baselines, segments
+        return self.params["image"], [baseline], [segment]

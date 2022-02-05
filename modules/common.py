@@ -88,4 +88,31 @@ def angle(lineA, lineB):
 
 
 def midpoint(p1, p2):
-    return Point((p1.x+p2.x)/2, (p1.y+p2.y)/2)
+    return Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
+
+
+def find_left_right_boundaries(image, line):
+    lineA, lineB = line, [[0, 0], [1, 0]]
+    a, b = Point(lineA[0]), Point(lineA[1])
+    diff = angle(lineA, lineB)
+    lefts, rights = [[], []], [[], []]
+
+    is_parallel = True if -2 <= diff <= 2 else False
+    is_rectangle = True if 88 <= diff <= 92 else False
+
+    xmax_img, ymax_img = image.shape[1], image.shape[0]
+    if is_parallel:  # // (0, 0), (1, 0)
+        lefts = [[a.x, 0], [b.x, 0]]
+        rights = [[b.x, ymax_img], [a.x, ymax_img]]
+        if a.x > b.x:  # // (1, 0), (0, 0)
+            lefts.reverse()
+            rights.reverse()
+
+    if is_rectangle:  # // (0, 0), (0, 1)
+        lefts = [[xmax_img, a.y], [xmax_img, b.y]]
+        rights = [[0, b.y], [0, a.y]]
+        if a.y > b.y:  # // (0, 1), (0, 0)
+            lefts.reverse()
+            rights.reverse()
+
+    return lefts, rights, diff

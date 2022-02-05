@@ -1,6 +1,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from modules.constant import CONST
+from modules.common import pairs, angle, reverse_geom
+from shapely.geometry import LineString
 
 
 class RoadwayCreator(ABC):
@@ -68,6 +70,39 @@ class ParallelCreator(RoadwayCreator):
     def create(self) -> RoadLane:
         from .parallel import ParallelLane
         return ParallelLane(self.params)
+
+
+def refine_roadlanes(roadway_data):
+    i, lst_dicts = 0, list()
+    for road in roadway_data["roads"]:
+        lst_dicts.append({
+            "i": i,
+            "ls": LineString(road)
+        })
+        i += 1
+
+    parallel_set = set()
+    for lsd1, lsd2 in pairs(lst_dicts):
+        if angle(lsd1["ls"].coords, lsd2["ls"].coords) > 175:
+            lsd2["ls"] = reverse_geom(lsd2["ls"])
+            parallel_set.add(lsd1["i"])
+            parallel_set.add(lsd2["i"])
+        if -5 < angle(lsd1["ls"].coords, lsd2["ls"].coords) < 5:
+            parallel_set.add(lsd1["i"])
+            parallel_set.add(lsd2["i"])
+
+    parallel_lst = []
+    for i in parallel_set:
+        for ls_dict in lst_dicts:
+            if ls_dict["i"] == i:
+                parallel_lst.append(ls_dict["ls"])
+
+    if len(parallel_lst) == len(lst_dicts):
+        roadway_data["road_type"] = CONST.ROAD_PARALLEL
+        roadway_data["roads"] = [list(parallel_lst[0].coords)]
+        roadway_data["lane_widths"] = [0]
+        roadway_data["lengths"] = [roadway_data["lengths"][0]]
+        return roadway_data
 
 
 def categorize_roadlane(roadway_data: dict) -> RoadwayCreator:

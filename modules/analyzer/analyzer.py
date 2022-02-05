@@ -109,10 +109,10 @@ class Analyzer:
                     continue
 
                 length, non_zeros, zeros = analyze(points=points, img=img)
-                if zeros/length >= 0.8:
+                if zeros/length >= CONST.MAX_PERCENTAGE_ZEROS:
                     invalid_lines.append({"i": x, "points": points})
                 else:
-                    line_type = "dash" if zeros/length > 0.28 else "cont"
+                    line_type = "dash" if zeros/length > CONST.MAX_PERCENTAGE_ZEROS_CONT else "cont"
                     # print(f'{x}: {length} {non_zeros}/{length} {zeros}/{length}')
                     valid_lines.append({"i": x, "points": points, "total": total,
                                         "type": line_type, "percentage": zeros/length})

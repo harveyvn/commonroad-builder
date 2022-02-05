@@ -6,6 +6,7 @@ from math import floor, ceil
 from typing import List
 from shapely import affinity
 from shapely.geometry import Point, LineString
+from .common import create, find, analyze
 from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
@@ -28,7 +29,7 @@ class Analyzer:
     lane lines within the road and categorize the lane type.
 
     Args:
-        image (numpy.ndarray): an processed image taken from CRISCE.
+        image (numpy.ndarray): a processed image taken from CRISCE.
         lanelines ([Laneline]): a list of middle lanelines (visualization purpose only).
         segment (Segment): a road object will be analyzed.
     """
@@ -37,13 +38,16 @@ class Analyzer:
         self.image = image
         self.segment = segment
         self.visualization = Visualization(image, lanelines, segment)
+        self.rotated_img = None
+        self.rotated_ls = None
 
     @staticmethod
     def define_roi(xmin, xmax, ymin, ymax):
         return np.array([[(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]], dtype=np.int32)
 
-    @staticmethod
-    def remove_out_of_range_lines(img, linestring: LineString):
+    def remove_out_of_range_lines(self):
+        img = self.rotated_img
+        ls = self.rotated_ls
         step = 0
         is_stop = False
         # Define list contain out of range lines
@@ -51,9 +55,9 @@ class Analyzer:
 
         # Searching invalid lines
         while is_stop is False:
-            window_line = translate_ls_to_new_origin(linestring, Point(step, 0))
+            window_line = translate_ls_to_new_origin(ls, Point(step, 0))
             if list(window_line.coords)[-1][1] < 0:
-                window_line = translate_ls_to_new_origin(linestring, Point(step, img.shape[0]))
+                window_line = translate_ls_to_new_origin(ls, Point(step, img.shape[0]))
 
             # Check if x value of all points (from a line string)
             # is in an x-axis range of a rotated image or not.
@@ -72,55 +76,9 @@ class Analyzer:
         first_x = step
         return first_x, oor_lines
 
-    @staticmethod
-    def generate_window_line(point_x: int, img, linestring: LineString, num_point: int = 15):
-        window_line = translate_ls_to_new_origin(linestring, Point(point_x, 0))
-        if list(window_line.coords)[-1][1] < 0:
-            window_line = translate_ls_to_new_origin(linestring, Point(point_x, img.shape[0]))
-        # Remove points not in an image
-        coords, checked_coords = list(window_line.coords), []
-        for p in coords:
-            try:
-                if int(img[int(p[1]), int(p[0])]) > -1:
-                    checked_coords.append(p)
-            except IndexError:
-                pass
-
-        # Take first 7 points from a line string
-        if len(checked_coords) < 3:
-            return LineString(coords)
-        return LineString(checked_coords[0:num_point])
-
-    @staticmethod
-    def find_first_color_point(points: List, img):
-        starting_color_index = 0
-        for i, p in enumerate(points):
-            val_point = int(img[p[1], p[0]])
-            # print(i, val_point)
-            if starting_color_index == 0 and val_point > 0:
-                starting_color_index = i
-
-        # print("Starting index is ", starting_color_index)
-        return starting_color_index
-
-    @staticmethod
-    def analyze_line_type(points, img):
-        zeros, non_zeros = 0, 0
-        length = len(points)
-        for i, p in enumerate(points):
-            try:
-                val = int(img[p[1], p[0]])
-            except IndexError:
-                val = 0
-            # print(i, val)
-            if val > 0:
-                non_zeros += 1
-            else:
-                zeros += 1
-
-        return length, non_zeros, zeros
-
-    def search_valid_lines(self, starting_x, img, linestring: LineString, num_points: int = 10):
+    def search_valid_lines(self, starting_x, num_points: int = 10):
+        img = self.rotated_img
+        ls = self.rotated_ls
         first_x_valid = -1
         starting_color_index = 0
         valid_lines, invalid_lines = list(), list()
@@ -129,7 +87,7 @@ class Analyzer:
         x = starting_x
         while x < img.shape[1]:
             expected_num_points = num_points + starting_color_index
-            window_line = self.generate_window_line(x, img, linestring, expected_num_points)
+            window_line = create(img=img, point_x=x, ls=ls, num_points=expected_num_points)
             coords = [(ceil(p[0]), ceil(p[1])) for p in list(window_line.coords[starting_color_index:])]
 
             # Compute the white density from a pixel image
@@ -147,10 +105,10 @@ class Analyzer:
                 # Take that index as a base index and use it on other lines to find line type
                 if first_x_valid == -1:
                     first_x_valid = x
-                    starting_color_index = self.find_first_color_point(points, img)
+                    starting_color_index = find(points=points, img=img)
                     continue
 
-                length, non_zeros, zeros = self.analyze_line_type(points, img)
+                length, non_zeros, zeros = analyze(points=points, img=img)
                 if zeros/length >= 0.8:
                     invalid_lines.append({"i": x, "points": points})
                 else:
@@ -199,7 +157,7 @@ class Analyzer:
         xmin = xmin if xmin > 0 else 0
         ymin = ymin if ymin > 0 else 0
         crop_img = masked_img[ymin:ymax, xmin:xmax]
-        viz_images["crop_img"] = crop_img
+
 
         # Rotate the crop image
         # Find the angle for rotation
@@ -207,25 +165,27 @@ class Analyzer:
         lineB = [[0, 0], [1, 0]]
         difference = 90 - angle(lineA, lineB)
         # Rotate our image by certain degrees around the center of the image
-        rotated_img = imutils.rotate_bound(crop_img, -difference)
-        viz_images["rotated_img"] = rotated_img
+        self.rotated_img = imutils.rotate_bound(crop_img, -difference)
 
-        self.segment.angle = -difference
-        rotated_lst = affinity.rotate(self.segment.mid_line, -difference, (0, 0))
-        first_x, oor_lines = self.remove_out_of_range_lines(img=rotated_img, linestring=rotated_lst)
-        good_lines, bad_lines = self.search_valid_lines(starting_x=first_x, img=rotated_img, linestring=rotated_lst)
+        # Rotate the baseline by certain degree following the image rotation
+        self.rotated_ls = affinity.rotate(self.segment.mid_line, -difference, (0, 0))
 
-        if len(oor_lines) > 0:
-            bad_lines = [bad_lines.append(line) for line in oor_lines]
+        # Find the starting valid x, so that the window line will not be out of range e.g. oor
+        first_x, oor_lines = self.remove_out_of_range_lines()
+        good_lines, bad_lines = self.search_valid_lines(starting_x=first_x)
 
         # Debug:
-        # self.visualization.draw_searching([], good_lines, rotated_img, True)
+        # if len(oor_lines) > 0:
+        #     bad_lines = [bad_lines.append(line) for line in oor_lines]
+        # self.visualization.draw_searching(bad_lines, good_lines, self.rotated_img, True)
 
         # Return a dictionary composing list of x values and their density values
         xs_dict = {}
         for line in good_lines:
             xs_dict[line["i"]] = line["total"]
 
+        viz_images["crop_img"] = crop_img
+        viz_images["rotated_img"] = self.rotated_img
         viz_images["xs_dict"] = xs_dict
         return xs_dict, good_lines
 

@@ -1,15 +1,15 @@
 import numpy as np
 from modules import slice_when
-from modules.models import Road
+from modules.models import Segment
 from modules.roadlane.laneline import Laneline
 import matplotlib.pyplot as plt
 
 
 class Visualization:
-    def __init__(self, image, lanelines: [Laneline], road: Road):
+    def __init__(self, image, lanelines: [Laneline], segment: Segment):
         self.image = image
         self.lanelines = lanelines
-        self.road = road
+        self.segment = segment
 
     def draw_img_with_baselines(self, ax, title):
         ax.title.set_text(title)
@@ -70,7 +70,7 @@ class Visualization:
 
     def draw_img_with_roi(self, ax, title):
         ax.title.set_text(title)
-        xs, ys = self.road.poly.exterior.xy
+        xs, ys = self.segment.poly.exterior.xy
         ax.imshow(self.image, cmap='gray')
         ax.plot(xs, ys, c="red")
         return ax
@@ -78,7 +78,7 @@ class Visualization:
     def draw_img_with_left_right_boundary(self, ax, title):
         ax.title.set_text(title)
         ax.imshow(self.image, cmap="gray")
-        boundaries = [list(self.road.left_boundary.coords), list(self.road.right_boundary.coords)]
+        boundaries = [list(self.segment.left_boundary.coords), list(self.segment.right_boundary.coords)]
         colors = ["blue", "green"]
         for i, coords in enumerate(boundaries):
             ax.plot([p[0] for p in coords],
@@ -124,4 +124,3 @@ class Visualization:
         # ax.set_ylim([0, max(peaks_ys)+20])
         # ax.set_xlim([240, 255])
         return ax
-

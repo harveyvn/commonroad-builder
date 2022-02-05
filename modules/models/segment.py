@@ -4,10 +4,9 @@ from shapely.geometry import Polygon, LineString
 from ..common import pairs, reverse_geom
 
 
-class Road:
-    def __init__(self, left_boundary: LineString, right_boundary: LineString,
-                 mid_line: LineString, width: float, road_id: int = 0, reversed: bool = False,
-                 angle: float = 0):
+class Segment:
+    def __init__(self, mid_line: LineString, width: float = 0, road_id: int = 0, reversed: bool = False,
+                 angle: float = 0, left_boundary: LineString = None, right_boundary: LineString = None):
         self.id = road_id
         self.left_boundary = left_boundary
         self.right_boundary = right_boundary

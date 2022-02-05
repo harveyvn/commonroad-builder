@@ -10,7 +10,7 @@ from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
-from modules.models import Road, LaneMarking
+from modules.models import Segment, LaneMarking
 
 
 viz_images = {
@@ -30,13 +30,13 @@ class Analyzer:
     Args:
         image (numpy.ndarray): an processed image taken from CRISCE.
         lanelines ([Laneline]): a list of middle lanelines (visualization purpose only).
-        road (Road): a road object will be analyzed.
+        segment (Segment): a road object will be analyzed.
     """
 
-    def __init__(self, image, lanelines: [Laneline], road: Road):
+    def __init__(self, image, lanelines: [Laneline], segment: Segment):
         self.image = image
-        self.road = road
-        self.visualization = Visualization(image, lanelines, road)
+        self.segment = segment
+        self.visualization = Visualization(image, lanelines, segment)
 
     @staticmethod
     def define_roi(xmin, xmax, ymin, ymax):
@@ -181,7 +181,7 @@ class Analyzer:
 
         # Define the bounding rectangle
         # Region of Interest (ROI) to be cropped
-        xs, ys = self.road.poly.exterior.xy
+        xs, ys = self.segment.poly.exterior.xy
         xmin, xmax = floor(min(xs)), ceil(max(xs))
         ymin, ymax = floor(min(ys)), ceil(max(ys))
         roi_area = np.array([[(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]], dtype=np.int32)
@@ -203,15 +203,15 @@ class Analyzer:
 
         # Rotate the crop image
         # Find the angle for rotation
-        lineA = [list(self.road.mid_line.coords)[0], list(self.road.mid_line.coords)[-1]]
+        lineA = [list(self.segment.mid_line.coords)[0], list(self.segment.mid_line.coords)[-1]]
         lineB = [[0, 0], [1, 0]]
         difference = 90 - angle(lineA, lineB)
         # Rotate our image by certain degrees around the center of the image
         rotated_img = imutils.rotate_bound(crop_img, -difference)
         viz_images["rotated_img"] = rotated_img
 
-        self.road.angle = -difference
-        rotated_lst = affinity.rotate(self.road.mid_line, -difference, (0, 0))
+        self.segment.angle = -difference
+        rotated_lst = affinity.rotate(self.segment.mid_line, -difference, (0, 0))
         first_x, oor_lines = self.remove_out_of_range_lines(img=rotated_img, linestring=rotated_lst)
         good_lines, bad_lines = self.search_valid_lines(starting_x=first_x, img=rotated_img, linestring=rotated_lst)
 
@@ -259,7 +259,7 @@ class Analyzer:
             print(f'{group} : {lines} : {percs}')
 
         # Assign the lanes to the road
-        self.road.lane_markings = []
+        self.segment.lane_markings = []
 
     def visualize(self):
         # Visualization: Draw a histogram to find the starting points of lane lines

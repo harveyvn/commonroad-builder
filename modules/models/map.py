@@ -1,6 +1,6 @@
 from typing import List
 
-from .road import Road
+from .segment import Segment
 from .lane_marking import LaneMarking
 from .lane import Lane
 import matplotlib.pyplot as plt
@@ -11,7 +11,7 @@ from modules.common import pairs
 
 
 class Map:
-    def __init__(self, segments: [Road], image):
+    def __init__(self, segments: [Segment], image):
         self.width = image.shape[1]
         self.height = image.shape[0]
         self.roads = segments

@@ -1,6 +1,7 @@
 from modules.common import translate_ls_to_new_origin
 from shapely.geometry import Point, LineString
 from typing import List
+import numpy as np
 
 
 def create(img, point_x: int, ls: LineString, num_points: int = 15):
@@ -72,3 +73,7 @@ def analyze(points: List, img):
             zeros += 1
 
     return length, non_zeros, zeros
+
+
+def define_roi(xmin, xmax, ymin, ymax):
+    return np.array([[(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]], dtype=np.int32)

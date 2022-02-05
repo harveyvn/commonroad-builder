@@ -6,13 +6,12 @@ from math import floor, ceil
 from typing import List
 from shapely import affinity
 from shapely.geometry import Point, LineString
-from .common import create, find, analyze
+from .common import create, find, analyze, define_roi
 from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
 from modules.models import Segment, LaneMarking
-
 
 viz_images = {
     "masked_img": None,
@@ -34,27 +33,21 @@ class Analyzer:
         segment (Segment): a road object will be analyzed.
     """
 
-    def __init__(self, image, lanelines: [Laneline], segment: Segment):
+    def __init__(self, image: np.array, lanelines: [Laneline], segment: Segment):
         self.image = image
         self.segment = segment
         self.visualization = Visualization(image, lanelines, segment)
         self.rotated_img = None
         self.rotated_ls = None
 
-    @staticmethod
-    def define_roi(xmin, xmax, ymin, ymax):
-        return np.array([[(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]], dtype=np.int32)
-
-    def remove_out_of_range_lines(self):
-        img = self.rotated_img
-        ls = self.rotated_ls
-        step = 0
-        is_stop = False
+    def del_oor_lines(self):
         # Define list contain out of range lines
         oor_lines = list()
+        step, stop = 0, False
+        img, ls = self.rotated_img, self.rotated_ls
 
         # Searching invalid lines
-        while is_stop is False:
+        while stop is False:
             window_line = translate_ls_to_new_origin(ls, Point(step, 0))
             if list(window_line.coords)[-1][1] < 0:
                 window_line = translate_ls_to_new_origin(ls, Point(step, img.shape[0]))
@@ -71,17 +64,14 @@ class Analyzer:
                     break
 
             if invalid_line is False:
-                is_stop = True
+                stop = True
 
-        first_x = step
-        return first_x, oor_lines
+        return step, oor_lines
 
-    def search_valid_lines(self, starting_x, num_points: int = 10):
-        img = self.rotated_img
-        ls = self.rotated_ls
-        first_x_valid = -1
-        starting_color_index = 0
-        valid_lines, invalid_lines = list(), list()
+    def find_lines(self, starting_x, num_points: int = 10):
+        img, ls = self.rotated_img, self.rotated_ls
+        first_x_valid, starting_color_index = -1, 0
+        good_lines, bad_lines = list(), list()
 
         # Searching the valid lane ids from remaining lines
         x = starting_x
@@ -109,18 +99,17 @@ class Analyzer:
                     continue
 
                 length, non_zeros, zeros = analyze(points=points, img=img)
-                if zeros/length >= CONST.MAX_PERCENTAGE_ZEROS:
-                    invalid_lines.append({"i": x, "points": points})
+                if zeros / length >= CONST.MAX_PERCENTAGE_ZEROS:
+                    bad_lines.append({"i": x, "points": points})
                 else:
-                    line_type = "dash" if zeros/length > CONST.MAX_PERCENTAGE_ZEROS_CONT else "cont"
-                    # print(f'{x}: {length} {non_zeros}/{length} {zeros}/{length}')
-                    valid_lines.append({"i": x, "points": points, "total": total,
-                                        "type": line_type, "percentage": zeros/length})
+                    line_type = "dash" if zeros / length > CONST.MAX_PERCENTAGE_ZEROS_CONT else "cont"
+                    good_lines.append({"i": x, "points": points, "total": total,
+                                       "type": line_type, "percentage": zeros / length})
             else:
-                invalid_lines.append({"i": x, "points": points})
+                bad_lines.append({"i": x, "points": points})
             x = x + 1
 
-        return valid_lines, invalid_lines
+        return good_lines, bad_lines
 
     def search_laneline(self):
         """
@@ -142,7 +131,7 @@ class Analyzer:
         xs, ys = self.segment.poly.exterior.xy
         xmin, xmax = floor(min(xs)), ceil(max(xs))
         ymin, ymax = floor(min(ys)), ceil(max(ys))
-        roi_area = np.array([[(xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)]], dtype=np.int32)
+        roi_area = define_roi(xmin, xmax, ymin, ymax)
 
         # Create a mask using poly points
         # Create a mask with white pixels
@@ -158,7 +147,6 @@ class Analyzer:
         ymin = ymin if ymin > 0 else 0
         crop_img = masked_img[ymin:ymax, xmin:xmax]
 
-
         # Rotate the crop image
         # Find the angle for rotation
         lineA = [list(self.segment.mid_line.coords)[0], list(self.segment.mid_line.coords)[-1]]
@@ -171,8 +159,8 @@ class Analyzer:
         self.rotated_ls = affinity.rotate(self.segment.mid_line, -difference, (0, 0))
 
         # Find the starting valid x, so that the window line will not be out of range e.g. oor
-        first_x, oor_lines = self.remove_out_of_range_lines()
-        good_lines, bad_lines = self.search_valid_lines(starting_x=first_x)
+        first_x, oor_lines = self.del_oor_lines()
+        good_lines, bad_lines = self.find_lines(starting_x=first_x)
 
         # Debug:
         # if len(oor_lines) > 0:

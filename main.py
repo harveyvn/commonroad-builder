@@ -1,3 +1,9 @@
+import math
+
+import shapely.geometry
+from typing import List
+
+import modules.models
 from modules.crisce import extract_data_from_scenario
 from modules.roadlane import categorize_roadlane
 from modules.analyzer import Analyzer
@@ -21,7 +27,7 @@ from modules.crisce.pre_processing import Pre_Processing
 from modules.crisce.roads import Roads
 from modules.crisce.car import Car
 from modules.crisce.kinematics import Kinematics
-# from modules.crisce.simulation import Simulation
+from modules.crisce.simulation import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -447,19 +453,23 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
-    roads, lane_nodes, road_lanes = extract_data_from_scenario("cases/00")
-    lane_factory = categorize_roadlane(road_lanes)
-    (image, baselines, roads) = lane_factory.run()
+    # straights = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692]
+    # for name in straights:
+    #     roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/single/{name}')
+    #     lane_factory = categorize_roadlane(road_lanes)
+    #     (image, baselines, segments) = lane_factory.run()
+    #
+    #     for segment in segments:
+    #         analyzer = Analyzer(image=image, lanelines=baselines, road=segment)
+    #         lane_dict = analyzer.search_laneline()
+    #         analyzer.categorize_laneline(lane_dict)
+    #         segment.generate_lanes()
+    #
+    #     network = Map(segments, image)
+    #     network.draw(True)
+    #     network.generate_road_with_ratio(lane_nodes, name)
 
-    for road in roads:
-        analyzer = Analyzer(image=image, lanelines=baselines, road=road)
-        lane_dict = analyzer.search_laneline()
-        analyzer.categorize_laneline(lane_dict)
-        road.generate_lanes()
 
-    network = Map(roads, image)
 
-    network.write_to_json()
-
-    exit()
+    # exit()
     cli()

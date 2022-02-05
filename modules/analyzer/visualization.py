@@ -1,15 +1,15 @@
 import numpy as np
 from modules import slice_when
-from modules.models import Road
+from modules.models import Segment
 from modules.roadlane.laneline import Laneline
 import matplotlib.pyplot as plt
 
 
 class Visualization:
-    def __init__(self, image, lanelines: [Laneline], road: Road):
+    def __init__(self, image, lanelines: [Laneline], segment: Segment):
         self.image = image
         self.lanelines = lanelines
-        self.road = road
+        self.segment = segment
 
     def draw_img_with_baselines(self, ax, title):
         ax.title.set_text(title)
@@ -43,14 +43,26 @@ class Visualization:
         if is_save:
             fig.savefig(f'{title}.png', bbox_inches="tight")
 
-    def draw_searching(self, invalid_lines, valid_lines, image, is_save: bool = False):
-        for id, lines in enumerate([invalid_lines, valid_lines]):
-            title = "valid" if id > 0 else "invalid"
-            color = "blue" if id > 0 else "red"
+    def draw_searching(self, sorted_lines, valid_lines, image, is_save: bool = False):
+        for id, lines in enumerate([sorted_lines]):
+            title = "invalid"
+            color = "red"
             for viz in lines:
                 i, lst = viz["i"], viz["lst"]
                 self.draw_img_with_a_single_line(
-                    title=f'{i} {title}',
+                    title=f'{i}',
+                    lst=lst,
+                    image=image,
+                    color=color,
+                    is_save=is_save)
+
+        for id, lines in enumerate([valid_lines]):
+            title = "valid"
+            color = "blue"
+            for viz in lines:
+                i, lst = viz["i"], viz["points"]
+                self.draw_img_with_a_single_line(
+                    title=f'{i}',
                     lst=lst,
                     image=image,
                     color=color,
@@ -58,7 +70,7 @@ class Visualization:
 
     def draw_img_with_roi(self, ax, title):
         ax.title.set_text(title)
-        xs, ys = self.road.poly.exterior.xy
+        xs, ys = self.segment.poly.exterior.xy
         ax.imshow(self.image, cmap='gray')
         ax.plot(xs, ys, c="red")
         return ax
@@ -66,7 +78,7 @@ class Visualization:
     def draw_img_with_left_right_boundary(self, ax, title):
         ax.title.set_text(title)
         ax.imshow(self.image, cmap="gray")
-        boundaries = [list(self.road.left_boundary.coords), list(self.road.right_boundary.coords)]
+        boundaries = [list(self.segment.left_boundary.coords), list(self.segment.right_boundary.coords)]
         colors = ["blue", "green"]
         for i, coords in enumerate(boundaries):
             ax.plot([p[0] for p in coords],
@@ -78,43 +90,37 @@ class Visualization:
     def draw_img(ax, masked_img, title):
         ax.title.set_text(title)
         ax.imshow(masked_img, cmap='gray')
+        ax = plt.gca().set_aspect('auto')
         return ax
 
     @staticmethod
-    def draw_histogram(ax, rotated_img, title, show_peaks: bool = False):
-        # Find a histogram
-        hist = None
-        cutoffs = [int(rotated_img.shape[0] / 2), 0]
-        for cutoff in cutoffs:
-            hist = np.sum(rotated_img[cutoff:, :], axis=0)
-            if hist.max() > 0:
-                break
-        if hist.max() == 0:
-            print('Unable to detect lane lines in this frame. Trying another frame!')
-            return False, np.array([]), np.array([])
-
+    def draw_img_1(ax, masked_img, title):
         ax.title.set_text(title)
-        ax.plot([i for i in range(0, len(hist))], hist)
+        ax.imshow(masked_img, cmap='gray')
+        # p = 200
+        # ax.set_ylim([0, p])
+        # ax.set_xlim([240, 255])
+        return ax
 
-        if show_peaks:
-            threshold = 5500
-            peaks = []
-            for i, val in enumerate(hist):
-                if val > threshold:
-                    peaks.append(i)
-            print(f'Possible peaks: {peaks}')
+    @staticmethod
+    def draw_histogram(ax, rotated_img, xs_dict, peaks, title, show_peaks: bool = False):
+        # Find a histogram
+        ax.title.set_text(title)
+        xs = [i for i in range(0, rotated_img.shape[1])]
+        ys = [0 for i in range(0, rotated_img.shape[1])]
+        for k in xs_dict:
+            ys[k] = xs_dict[k]
+        ax.plot(xs, ys)
+        ax.plot(peaks, [ys[x] for x in peaks], '.', color="red")
 
-            tst = peaks.copy()
-            slices = list(slice_when(lambda x, y: y - x > 2, tst))
-            print(f'Slice peaks: {slices}')
-            peaks = []
-            for slice in slices:
-                chosen_peak = slice[0]
-                for ind in slice:
-                    if hist[ind] > hist[chosen_peak]:
-                        chosen_peak = ind
-                peaks.append(chosen_peak)
-            print(f'Chosen peaks: {peaks}')
-            for peak in peaks:
-                ax.plot(peak, hist[peak], '.', color="red")
+        print(xs_dict)
+
+        peaks_ys = [ys[x] for x in peaks]
+        p = max(peaks_ys) + 10
+        # ax.plot([-5, 10, 10, -5, -5], [p, p, 0, 0, p], '-', color="orange")
+        # ax.plot([120, 135, 135, 120, 120], [p, p, 0, 0, p], '-', color="orange")
+        # ax.plot([240, 255, 255, 240, 240], [p, p, 0, 0, p], '-', color="orange")
+
+        # ax.set_ylim([0, max(peaks_ys)+20])
+        # ax.set_xlim([240, 255])
         return ax

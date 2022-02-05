@@ -63,6 +63,13 @@ class IntersectionCreator(RoadwayCreator):
         return IntersectionLane(self.params)
 
 
+class ParallelCreator(RoadwayCreator):
+
+    def create(self) -> RoadLane:
+        from .parallel import ParallelLane
+        return ParallelLane(self.params)
+
+
 def categorize_roadlane(roadway_data: dict) -> RoadwayCreator:
     """
     Return a specific lane analyzer up to the roadway type
@@ -71,5 +78,7 @@ def categorize_roadlane(roadway_data: dict) -> RoadwayCreator:
         return LinearCreator(roadway_data)
     if roadway_data["road_type"] == CONST.ROAD_INTERSECTION:
         return IntersectionCreator(roadway_data)
+    if roadway_data["road_type"] == CONST.ROAD_PARALLEL:
+        return ParallelCreator(roadway_data)
 
     raise Exception("Exception: RoadLane Type not found!")

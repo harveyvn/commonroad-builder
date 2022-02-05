@@ -2,10 +2,17 @@ class Constant:
     def __init__(self):
         self.ROAD_CURVE_OR_STRAIGHT = 0
         self.ROAD_INTERSECTION = 1
+        self.ROAD_PARALLEL = 2
         self.SINGLE_LINE = 0
         self.SINGLE_DASHED_LINE = 1
         self.DOUBLE_LINE = 2
         self.DOUBLE_DASHED_LINE = 3
+        self.CAR_LENGTH_SIM = 4.670000586694935
+        self.MAX_PERCENTAGE_ZEROS = 0.8
+        self.MAX_PERCENTAGE_ZEROS_CONT = 0.28
+        self.LINUX = "Linux"
+        self.DARWIN = "Darwin"
+        self.WINDOWS = "Windows"
         self.CRISCE_IMPACT_MODEL = {
             "front_left": [
                 "headlight_L", "hood", "fender_L", "bumper_F", "bumperbar_F", "suspension_F", "body_wagon"

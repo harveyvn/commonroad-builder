@@ -212,6 +212,34 @@ def interpolate(road_nodes, sampling_unit=interpolation_distance):
                         [round(v, rounding_precision) for v in new_y_vals]))
 
 
+def generate_left_marking(road_nodes, distance):
+    return _generate_lane_marking(road_nodes, "left", distance)
+
+
+def generate_right_marking(road_nodes, distance):
+    return _generate_lane_marking(road_nodes, "right", distance)
+
+
+def _generate_lane_marking(road_nodes, side, distance=3.9):
+    """
+    BeamNG has troubles rendering/interpolating textures when nodes are too close to each other, so we need
+    to resample them.
+    To Generate Lane marking:
+     1 Compute offset from the road spice (this creates points that are too close to each other to be interpolated by BeamNG)
+     2 Reinterpolate those points using Cubic-splines
+     3 Resample the spline at 10m distance
+    """
+    road_spine = LineString([(rn[0], rn[1]) for rn in road_nodes])
+    if side == "left":
+        x, y = road_spine.parallel_offset(distance, side, resolution=16, join_style=1, mitre_limit=5.0).coords.xy
+    else:
+        tmp_ls = road_spine.parallel_offset(distance, side, resolution=16, join_style=1, mitre_limit=5.0)
+        laneline_list = list(tmp_ls.coords).copy()
+        laneline_list.reverse()
+        x, y = LineString(laneline_list).coords.xy
+
+    interpolated_points = interpolate([(p[0], p[1]) for p in zip(x, y)], sampling_unit=10)
+    return [(p[0], p[1], 0, 0.1) for p in interpolated_points]
 
 
 def extract_data_from_scenario(dir_path, dataset_name=None, output_to=None):

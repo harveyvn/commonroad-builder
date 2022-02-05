@@ -1,7 +1,7 @@
 from . import RoadLane
 from .laneline import Laneline
 from math import ceil
-from modules.models import Road
+from modules.models import Segment
 
 
 class LinearLane(RoadLane):
@@ -13,14 +13,15 @@ class LinearLane(RoadLane):
         length = self.params["length"]
 
         # Define the polygon covering the road with the midline linestring, left & right boundaries
+        buffer = 0.00005
         laneline = Laneline(coords=coords, width=lane_width / 2)
         mid_line = laneline.get_linestring()
-        right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="right", join_style=2)
-        left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width), side="left", join_style=2)
-        road = Road(mid_line=mid_line,
+        right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width + buffer), side="right", join_style=2)
+        left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width + buffer), side="left", join_style=2)
+        segment = Segment(mid_line=mid_line,
                     left_boundary=left_boundary,
                     right_boundary=right_boundary,
                     width=lane_width)
 
-        baselines, roads = [laneline], [road]
-        return image, baselines, roads
+        baselines, segments = [laneline], [segment]
+        return image, baselines, segments

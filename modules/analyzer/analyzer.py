@@ -91,20 +91,20 @@ class Analyzer:
                     pass
 
             if total > 0:
-                # Look for index of the first point has color value bigger than 0 in the first valid line
-                # Take that index as a base index and use it on other lines to find line type
-                if first_x_valid == -1:
-                    first_x_valid = x
-                    starting_color_index = find(points=points, img=img)
-                    continue
-
                 length, non_zeros, zeros = analyze(points=points, img=img)
                 if zeros / length >= CONST.MAX_PERCENTAGE_ZEROS:
                     bad_lines.append({"i": x, "points": points})
                 else:
-                    line_type = "dash" if zeros / length > CONST.MAX_PERCENTAGE_ZEROS_CONT else "cont"
-                    good_lines.append({"i": x, "points": points, "total": total,
-                                       "type": line_type, "percentage": zeros / length})
+                    # Look for index of the first point has color value bigger than 0 in the first valid line
+                    # Take that index as a base index and use it on other lines to find line type
+                    if first_x_valid == -1:
+                        first_x_valid = x
+                        starting_color_index = find(points=points, img=img)
+                        continue
+                    else:
+                        line_type = "dash" if zeros / length > CONST.MAX_PERCENTAGE_ZEROS_CONT else "cont"
+                        good_lines.append({"i": x, "points": points, "total": total,
+                                           "type": line_type, "percentage": zeros / length})
             else:
                 bad_lines.append({"i": x, "points": points})
             x = x + 1

@@ -1,12 +1,13 @@
 import cv2
 import imutils
 import numpy as np
+from .winline import Winline
 from .visualization import Visualization
+from .common import create, find, analyze, define_roi
 from math import floor, ceil
 from typing import List
 from shapely import affinity
 from shapely.geometry import Point, LineString
-from .common import create, find, analyze, define_roi
 from modules import slice_when, angle
 from modules.common import translate_ls_to_new_origin
 from modules.constant import CONST
@@ -69,9 +70,9 @@ class Analyzer:
         return step, oor_lines
 
     def find_lines(self, starting_x, num_points: int = 10):
-        img, ls = self.rotated_img, self.rotated_ls
-        first_x_valid, starting_color_index = -1, 0
         good_lines, bad_lines = list(), list()
+        first_x_valid, starting_color_index = -1, 0
+        img, ls = self.rotated_img, self.rotated_ls
 
         # Searching the valid lane ids from remaining lines
         x = starting_x
@@ -81,8 +82,7 @@ class Analyzer:
             coords = [(ceil(p[0]), ceil(p[1])) for p in list(window_line.coords[starting_color_index:])]
 
             # Compute the white density from a pixel image
-            points = list()
-            total = 0
+            total, points = 0, list()
             for p in coords:
                 points.append(p)
                 try:
@@ -93,7 +93,7 @@ class Analyzer:
             if total > 0:
                 length, non_zeros, zeros = analyze(points=points, img=img)
                 if zeros / length >= CONST.MAX_PERCENTAGE_ZEROS:
-                    bad_lines.append({"i": x, "points": points})
+                    bad_lines.append(Winline(id=x, points=points))
                 else:
                     # Look for index of the first point has color value bigger than 0 in the first valid line
                     # Take that index as a base index and use it on other lines to find line type
@@ -101,12 +101,9 @@ class Analyzer:
                         first_x_valid = x
                         starting_color_index = find(points=points, img=img)
                         continue
-                    else:
-                        line_type = "dash" if zeros / length > CONST.MAX_PERCENTAGE_ZEROS_CONT else "cont"
-                        good_lines.append({"i": x, "points": points, "total": total,
-                                           "type": line_type, "percentage": zeros / length})
+                    good_lines.append(Winline(id=x, points=points, total=total, zero_perc=zeros/length))
             else:
-                bad_lines.append({"i": x, "points": points})
+                bad_lines.append(Winline(id=x, points=points))
             x = x + 1
 
         return good_lines, bad_lines
@@ -170,7 +167,7 @@ class Analyzer:
         # Return a dictionary composing list of x values and their density values
         xs_dict = {}
         for line in good_lines:
-            xs_dict[line["i"]] = line["total"]
+            xs_dict[line.id] = line.total
 
         viz_images["crop_img"] = crop_img
         viz_images["rotated_img"] = self.rotated_img
@@ -201,9 +198,9 @@ class Analyzer:
             percs = []
             for line_id in group:
                 for line in lane_markings:
-                    if line['i'] == line_id:
-                        lines.append(line["type"])
-                        percs.append(line["percentage"])
+                    if line.id == line_id:
+                        lines.append(line.pattern)
+                        percs.append(line.zero_perc)
             print(f'{group} : {lines} : {percs}')
 
         # Assign the lanes to the road

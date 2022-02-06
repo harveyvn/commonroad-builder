@@ -151,7 +151,7 @@ class Analyzer:
         # Find the angle for rotation
         lineA = [list(self.segment.mid_line.coords)[0], list(self.segment.mid_line.coords)[-1]]
         lineB = [[0, 0], [1, 0]]
-        difference = 90 - angle(lineA, lineB)
+        difference = 90 - angle(lineA, lineB) if angle(lineA, lineB) > 8 else 90
         # Rotate our image by certain degrees around the center of the image
         self.rotated_img = imutils.rotate_bound(crop_img, -difference)
 
@@ -212,8 +212,6 @@ class Analyzer:
                 lsts.append(ls)
                 lstrs.append(lsr)
 
-        for l in lines:
-            print(l)
         viz_images["lines"] = lines
         viz_images["before_rotate"] = lsts
         viz_images["after_rotate"] = lstrs

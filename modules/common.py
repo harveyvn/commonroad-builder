@@ -110,7 +110,7 @@ def find_left_right_boundaries(image, line):
     diff = angle(lineA, lineB)
     lefts, rights = [[], []], [[], []]
 
-    is_horizontal = True if -2 <= diff <= 2 else False
+    is_horizontal = True if -2 <= diff <= 6 else False
     is_vertical = True if 88 <= diff <= 92 else False
 
     xmax_img, ymax_img = image.shape[1], image.shape[0]

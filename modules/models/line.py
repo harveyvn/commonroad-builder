@@ -8,7 +8,7 @@ class Line:
         threshold = 2 / 3 if len(keys) > 2 else 0.5
         total = sum(v.pattern for v in marks.values())
 
-        self.num = CONST.SINGLE if len(keys) < 4 else CONST.DOUBLE
+        self.num = CONST.SINGLE if len(keys) <= 4 else CONST.DOUBLE
         self.pattern = CONST.SOLID if total / len(keys) >= threshold else CONST.DASHED
         self.keys = keys
         self.ls = None

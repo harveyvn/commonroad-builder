@@ -220,10 +220,12 @@ class Analyzer:
             self.visualization.draw_lines_on_image(ax[2, 1], viz_images["rotated_img"], viz_images["before_rotate"],
                                                    "Step 06", viz_images["lines"]),
             self.visualization.draw_lines_on_image(ax[3, 0], self.image, viz_images["after_rotate"], "Step 07",
+                                                   viz_images["lines"], True),
+            self.visualization.draw_lines_on_image(ax[3, 1], self.image, viz_images["after_rotate"], "Step 07 no image",
                                                    viz_images["lines"]),
-            self.visualization.draw_segment_lines(ax[3, 1], viz_images["after_rotate"], "Step 08",
+            self.visualization.draw_segment_lines(ax[4, 0], viz_images["after_rotate"], "Step 08",
                                                   viz_images["lines"], True),
-            self.visualization.draw_segment_lines(ax[4, 0], viz_images["after_rotate"], "Step 09",
+            self.visualization.draw_segment_lines(ax[4, 1], viz_images["after_rotate"], "Step 08 no image",
                                                   viz_images["lines"])
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]

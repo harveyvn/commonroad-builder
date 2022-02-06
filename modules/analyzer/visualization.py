@@ -94,9 +94,12 @@ class Visualization:
         return ax
 
     @staticmethod
-    def draw_lines_on_image(ax, img, lst, title, lines):
+    def draw_lines_on_image(ax, img, lst, title, lines, with_image: bool = False):
         ax.title.set_text(title)
-        ax.imshow(img, cmap='gray')
+        if with_image:
+            ax.imshow(img, cmap='gray')
+        else:
+            ax.plot(0, 0, color="white")
         for i, line in enumerate(lines):
             ax.plot([p[0] for p in lst[i].coords],
                     [p[1] for p in lst[i].coords],
@@ -109,6 +112,8 @@ class Visualization:
         ax.title.set_text(title)
         if with_image:
             ax.imshow(self.image, cmap='gray')
+        else:
+            ax.plot(0, 0, color="white")
         for i, line in enumerate(lines):
             ax.plot([p[0] for p in lst[i].coords],
                     [p[1] for p in lst[i].coords],

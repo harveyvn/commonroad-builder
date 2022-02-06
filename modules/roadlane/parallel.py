@@ -3,12 +3,12 @@ from .laneline import Laneline
 from shapely.geometry import LineString
 from modules.constant import CONST
 from modules.models import Segment
-from modules.common import find_left_right_boundaries
+from modules.common import find_left_right_boundaries, order_points
 
 
 class ParallelLane(RoadLane):
     def process(self):
-        baseline = Laneline(lane_id=0, coords=self.params["roads"][0], width=0)
+        baseline = Laneline(lane_id=0, coords=order_points(self.params["roads"][0]), width=0)
         lefts, rights, diff = find_left_right_boundaries(self.params["image"], baseline.get_line())
 
         segment = Segment(road_id=baseline.id,

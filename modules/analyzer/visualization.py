@@ -94,9 +94,13 @@ class Visualization:
         return ax
 
     @staticmethod
-    def draw_lines_on_image(ax, img, lst, title, lines):
+    def draw_lines_on_image(ax, img, lst, title, lines, with_image: bool = False):
         ax.title.set_text(title)
-        ax.imshow(img, cmap='gray')
+        if with_image:
+            ax.imshow(img, cmap='gray', origin="lower")
+        else:
+            ax.plot(0, 0, color="white")
+            ax.plot(img.shape[1], img.shape[0], color="white")
         for i, line in enumerate(lines):
             ax.plot([p[0] for p in lst[i].coords],
                     [p[1] for p in lst[i].coords],
@@ -105,14 +109,19 @@ class Visualization:
         ax.set_aspect("auto")
         return ax
 
-    @staticmethod
-    def draw_segment_lines(ax, lst, title, lines):
+    def draw_segment_lines(self, ax, lst, title, lines, with_image: bool = False):
         ax.title.set_text(title)
+        if with_image:
+            ax.imshow(self.image, cmap='gray', origin="lower")
+        else:
+            ax.plot(0, 0, color="white")
+            ax.plot(self.image.shape[1], self.image.shape[0], color="white")
         for i, line in enumerate(lines):
             ax.plot([p[0] for p in lst[i].coords],
                     [p[1] for p in lst[i].coords],
                     linewidth=4 if line.num == "double" else 1,
                     linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
+        ax.set_aspect("equal")
         return ax
 
     @staticmethod

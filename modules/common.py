@@ -2,6 +2,7 @@ from math import acos, degrees
 from shapely.geometry import LineString, Point
 import shapely.wkt
 import shapely.ops
+import numpy as np
 
 
 def reverse_geom(geom):
@@ -89,6 +90,18 @@ def angle(lineA, lineB):
 
 def midpoint(p1, p2):
     return Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
+
+
+def order_points(points, ind: int = 0):
+    points_new = [points.pop(ind)]  # initialize a new list of points with the known first point
+    pcurr = points_new[-1]  # initialize the current point (as the known point)
+    while len(points) > 0:
+        d = np.linalg.norm(np.array(points) - np.array(pcurr),
+                           axis=1)  # distances between pcurr and all other remaining points
+        ind = d.argmin()  # index of the closest point
+        points_new.append(points.pop(ind))  # append the closest point to points_new
+        pcurr = points_new[-1]  # update the current point
+    return points_new
 
 
 def find_left_right_boundaries(image, line):

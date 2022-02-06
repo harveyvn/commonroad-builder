@@ -172,7 +172,7 @@ class Analyzer:
         viz_images["rotated_img"] = self.rotated_img
         return good_lines
 
-    def categorize_laneline(self, lane_dict, threshold=300):
+    def categorize_laneline(self, lane_dict):
         """
         Take the width of different lane lines and suggest the suitable type for each lane.
         The type might be: a single line, a dashed line, a double line or a double dashed line.
@@ -194,23 +194,34 @@ class Analyzer:
         lines = [Line(dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
 
         # Assign the lanes to the road
-
+        lsts, lstrs = list(), list()
         if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
-            pass
+            peaks = [l.get_peak() for l in lines]
+            left_lsr = affinity.rotate(self.segment.left_boundary, self.angle, (0, 0))
+            for i, line in enumerate(lines):
+                distance = line.get_peak() - peaks[0]
+                ls = left_lsr.parallel_offset(distance=distance, side="right", join_style=2)
+                lsr = affinity.rotate(ls, -self.angle, (0, 0))
+                lsts.append(ls)
+                lstrs.append(lsr)
         elif self.segment.kind == CONST.ROAD_PARALLEL:
             first, last = self.rotated_ls.boundary
             for i, line in enumerate(lines):
                 ls = translate_ls_to_new_origin(self.rotated_ls, Point(line.get_peak(), first.y))
                 lsr = affinity.rotate(ls, -self.angle, (0, 0))
-                viz_images["before_rotate"].append(ls)
-                viz_images["after_rotate"].append(lsr)
+                lsts.append(ls)
+                lstrs.append(lsr)
 
+        for l in lines:
+            print(l)
         viz_images["lines"] = lines
+        viz_images["before_rotate"] = lsts
+        viz_images["after_rotate"] = lstrs
 
     def visualize(self):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(4, 2, figsize=(16, 24))
+        fig, ax = plt.subplots(5, 2, figsize=(16, 24))
         axs = [
             self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01: Baseline"),
             self.visualization.draw_img_with_roi(ax[0, 1], "Step 02: ROI"),
@@ -218,10 +229,14 @@ class Analyzer:
             self.visualization.draw_img(ax[1, 1], viz_images["crop_img"], "Step 04: Crop"),
             self.visualization.draw_img(ax[2, 0], viz_images["rotated_img"], "Step 05: Rotate"),
             self.visualization.draw_lines_on_image(ax[2, 1], viz_images["rotated_img"], viz_images["before_rotate"],
-                                                   "Step 06", viz_images["lines"]),
+                                                   "Step 06", viz_images["lines"], True),
             self.visualization.draw_lines_on_image(ax[3, 0], self.image, viz_images["after_rotate"], "Step 07",
+                                                   viz_images["lines"], True),
+            self.visualization.draw_lines_on_image(ax[3, 1], self.image, viz_images["after_rotate"], "Step 07 no image",
                                                    viz_images["lines"]),
-            self.visualization.draw_segment_lines(ax[3, 1], viz_images["after_rotate"], "Step 08",
+            self.visualization.draw_segment_lines(ax[4, 0], viz_images["after_rotate"], "Step 08",
+                                                  viz_images["lines"], True),
+            self.visualization.draw_segment_lines(ax[4, 1], viz_images["after_rotate"], "Step 08 no image",
                                                   viz_images["lines"])
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]

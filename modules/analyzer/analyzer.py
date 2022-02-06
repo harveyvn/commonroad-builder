@@ -219,7 +219,7 @@ class Analyzer:
         for l in lines:
             print(l)
 
-    def visualize(self):
+    def visualize(self, title: str = None, is_save: bool = False):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(5, 2, figsize=(16, 24))
@@ -242,3 +242,5 @@ class Analyzer:
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]
         plt.show()
+        if is_save:
+            fig.savefig(f'{title}.png', bbox_inches="tight")

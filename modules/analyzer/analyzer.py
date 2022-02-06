@@ -63,7 +63,7 @@ class Analyzer:
             for point in list(window_line.coords):
                 if point[0] < 0:
                     invalid_line = True
-                    oor_lines[step] = Winline(id=step, points=list(window_line.coords))
+                    oor_lines[step] = Winline(id=step)
                     step = step + 1
                     break
 
@@ -96,7 +96,7 @@ class Analyzer:
             if total > 0:
                 length, non_zeros, zeros = analyze(points=points, img=img)
                 if zeros / length >= CONST.MAX_PERCENTAGE_ZEROS:
-                    bad_lines[x] = Winline(id=x, points=list(window_line.coords))
+                    bad_lines[x] = Winline(id=x)
                 else:
                     # Look for index of the first point has color value bigger than 0 in the first valid line
                     # Take that index as a base index and use it on other lines to find line type
@@ -104,9 +104,9 @@ class Analyzer:
                         first_x_valid = x
                         starting_color_index = find(points=points, img=img)
                         continue
-                    good_lines[x] = Winline(id=x, points=points, total=total, zero_perc=zeros / length)
+                    good_lines[x] = Winline(id=x, total=total, zero_perc=zeros / length)
             else:
-                bad_lines[x] = Winline(id=x, points=list(window_line.coords))
+                bad_lines[x] = Winline(id=x)
             x = x + 1
 
         return good_lines, bad_lines

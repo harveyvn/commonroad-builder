@@ -151,7 +151,7 @@ class Analyzer:
         # Find the angle for rotation
         lineA = [list(self.segment.mid_line.coords)[0], list(self.segment.mid_line.coords)[-1]]
         lineB = [[0, 0], [1, 0]]
-        difference = 90 - angle(lineA, lineB)
+        difference = 90 - angle(lineA, lineB) if angle(lineA, lineB) > 8 else 90
         # Rotate our image by certain degrees around the center of the image
         self.rotated_img = imutils.rotate_bound(crop_img, -difference)
 
@@ -166,7 +166,7 @@ class Analyzer:
         # Debug:
         # if len(oor_lines.keys()) > 0:
         #     bad_lines = [bad_lines.append(line) for line in oor_lines]
-        # self.visualization.draw_searching(bad_lines, good_lines, self.rotated_img, True)
+        # self.visualization.draw_searching([], good_lines, self.rotated_img, True)
 
         viz_images["crop_img"] = crop_img
         viz_images["rotated_img"] = self.rotated_img
@@ -212,13 +212,14 @@ class Analyzer:
                 lsts.append(ls)
                 lstrs.append(lsr)
 
-        for l in lines:
-            print(l)
         viz_images["lines"] = lines
         viz_images["before_rotate"] = lsts
         viz_images["after_rotate"] = lstrs
 
-    def visualize(self):
+        for l in lines:
+            print(l)
+
+    def visualize(self, title: str = None, is_save: bool = False):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(5, 2, figsize=(16, 24))
@@ -241,3 +242,5 @@ class Analyzer:
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]
         plt.show()
+        if is_save:
+            fig.savefig(f'{title}.png', bbox_inches="tight")

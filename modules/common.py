@@ -2,7 +2,9 @@ from math import acos, degrees
 from shapely.geometry import LineString, Point
 import shapely.wkt
 import shapely.ops
+import numpy.polynomial.polynomial as poly
 import numpy as np
+from typing import List
 
 
 def reverse_geom(geom):
@@ -104,14 +106,19 @@ def order_points(points, ind: int = 0):
     return points_new
 
 
-def find_left_right_boundaries(image, line):
+def orient(line):
+    lineA, lineB = line, [[0, 0], [1, 0]]
+    diff = angle(lineA, lineB)
+    is_horizontal = True if -2 <= diff <= 6 else False
+    is_vertical = True if 80 <= diff <= 100 else False
+    return is_horizontal, is_vertical
+
+
+def find_boundaries(image, line):
+    is_horizontal, is_vertical = orient(line)
     lineA, lineB = line, [[0, 0], [1, 0]]
     a, b = Point(lineA[0]), Point(lineA[1])
-    diff = angle(lineA, lineB)
     lefts, rights = [[], []], [[], []]
-
-    is_horizontal = True if -2 <= diff <= 2 else False
-    is_vertical = True if 88 <= diff <= 92 else False
 
     xmax_img, ymax_img = image.shape[1], image.shape[0]
     if is_horizontal:  # // (0, 0), (1, 0)
@@ -128,4 +135,29 @@ def find_left_right_boundaries(image, line):
             lefts.reverse()
             rights.reverse()
 
-    return lefts, rights, diff
+    return lefts, rights
+
+
+def interpolate(coords: List, axis_idx: int, image: np.array):
+    xs = [p[0] for p in coords]
+    ys = [p[1] for p in coords]
+
+    if axis_idx == 1:
+        coefs = poly.polyfit(xs, ys, 2)
+        margin_right = 20
+
+        poly_xs = [x for x in range(int(xs[0]), int(image.shape[1] - margin_right))]
+        poly_ys = poly.polyval(poly_xs, coefs)
+        coords = [(x, y) for x, y in zip(poly_xs, poly_ys)]
+    # import matplotlib.pyplot as plt
+    #
+    # plt.imshow(image, cmap='gray')
+    # plt.plot(xs, ys, '.')
+    # # plt.plot(poly_xs, poly_ys, '.')
+    # plt.show()
+    #
+    # print(coords)
+    if axis_idx == 0:
+        print("From Parallel interpolate")
+        exit()
+    return coords

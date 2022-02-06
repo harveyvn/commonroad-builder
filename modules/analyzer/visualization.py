@@ -59,8 +59,8 @@ class Visualization:
         for id, lines in enumerate([valid_lines]):
             title = "valid"
             color = "blue"
-            for viz in lines:
-                i, lst = viz["i"], viz["points"]
+            for k, v in lines.items():
+                i, lst = k, v.points
                 self.draw_img_with_a_single_line(
                     title=f'{i}',
                     lst=lst,

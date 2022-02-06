@@ -2,6 +2,7 @@ from . import RoadLane
 from .laneline import Laneline
 from math import ceil
 from modules.models import Segment
+from modules.constant import CONST
 
 
 class LinearLane(RoadLane):
@@ -21,7 +22,8 @@ class LinearLane(RoadLane):
         segment = Segment(mid_line=mid_line,
                           left_boundary=left_boundary,
                           right_boundary=right_boundary,
-                          width=lane_width)
+                          width=lane_width,
+                          kind=CONST.ROAD_CURVE_OR_STRAIGHT)
 
         baselines, segments = [laneline], [segment]
         return image, baselines, segments

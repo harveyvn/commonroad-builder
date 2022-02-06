@@ -196,7 +196,7 @@ class Analyzer:
         # Assign the lanes to the road
 
         if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
-            pass
+            print(lines)
         elif self.segment.kind == CONST.ROAD_PARALLEL:
             first, last = self.rotated_ls.boundary
             for i, line in enumerate(lines):
@@ -204,7 +204,7 @@ class Analyzer:
                 lsr = affinity.rotate(ls, -self.angle, (0, 0))
                 viz_images["before_rotate"].append(ls)
                 viz_images["after_rotate"].append(lsr)
-
+        exit()
         viz_images["lines"] = lines
 
     def visualize(self):

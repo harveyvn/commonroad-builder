@@ -172,7 +172,7 @@ class Analyzer:
         viz_images["rotated_img"] = self.rotated_img
         return good_lines
 
-    def categorize_laneline(self, lane_dict, threshold=300):
+    def categorize_laneline(self, lane_dict):
         """
         Take the width of different lane lines and suggest the suitable type for each lane.
         The type might be: a single line, a dashed line, a double line or a double dashed line.
@@ -210,7 +210,7 @@ class Analyzer:
     def visualize(self):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(4, 2, figsize=(16, 24))
+        fig, ax = plt.subplots(5, 2, figsize=(16, 24))
         axs = [
             self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01: Baseline"),
             self.visualization.draw_img_with_roi(ax[0, 1], "Step 02: ROI"),
@@ -222,6 +222,8 @@ class Analyzer:
             self.visualization.draw_lines_on_image(ax[3, 0], self.image, viz_images["after_rotate"], "Step 07",
                                                    viz_images["lines"]),
             self.visualization.draw_segment_lines(ax[3, 1], viz_images["after_rotate"], "Step 08",
+                                                  viz_images["lines"], True),
+            self.visualization.draw_segment_lines(ax[4, 0], viz_images["after_rotate"], "Step 09",
                                                   viz_images["lines"])
             # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
         ]

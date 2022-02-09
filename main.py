@@ -387,7 +387,7 @@ if __name__ == '__main__':
         return int(sum_x / length), int(sum_y / length)
 
 
-    img = cv2.imread("samples/road5.jpeg")
+    img = cv2.imread("samples/road2.jpeg")
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img_canny = cv2.Canny(img_gray, 100, 100)
     kernel = np.ones((2, 2))
@@ -404,7 +404,7 @@ if __name__ == '__main__':
 
     print(len(contours))
 
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 0, 255)]
+    colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 0, 255)]
     centers = []
     cnt_dict = []
 
@@ -423,7 +423,7 @@ if __name__ == '__main__':
     # cv2.imshow("Image", img)
     # cv2.waitKey(0)
     # exit()
-    from shapely.geometry import Point
+    from shapely.geometry import Point, LineString
     points = []
     for it in cnt_dict:
         points.append(list(it["cen"]))
@@ -432,11 +432,12 @@ if __name__ == '__main__':
     import numpy as np
     print(points)
     X = np.array(points)
-    db = DBSCAN(eps=30, min_samples=1).fit(X)
+    db = DBSCAN(eps=42, min_samples=1).fit(X)
     # Number of clusters in labels, ignoring noise if present.
     labels = db.labels_
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
     n_noise_ = list(labels).count(-1)
+    print("Labels: ", labels)
     print("Estimated number of clusters: %d" % n_clusters_)
     print("Estimated number of noise points: %d" % n_noise_)
 
@@ -445,15 +446,75 @@ if __name__ == '__main__':
         Xs = X[db.labels_ == i]
         if len(Xs) == 3:
             tips = Xs
-            print(i, tips)
-            print("=====")
-    for p in tips:
+            # print(i, tips)
+            # print("=====")
+    tip_ids = []
+    for id, p in enumerate(tips):
         target = Point(p)
-        for item in cnt_dict:
+        for i, item in enumerate(cnt_dict):
             if target.distance(Point(item["cen"])) == 0:
+                tip_ids.append(i)
                 # cv2.drawContours(img, item["cnt"], -1, (0, 0, 255), 3)
-                cv2.circle(img, (int(target.x), int(target.y)), radius=3, color=(0, 0, 255), thickness=-1)
+                # cv2.circle(img, (int(target.x), int(target.y)), radius=2, color=colors[id], thickness=-1)
+                print(i, item["len"], item["cen"])
+    print(tip_ids)
+    # cv2.imshow("Image", img)
+    # cv2.waitKey(0)
 
+    pair = []
+    distance = 1000000
+    for c1, c2 in pairs(tip_ids):
+        p1 = Point(cnt_dict[c1]["cen"])
+        p2 = Point(cnt_dict[c2]["cen"])
+        mdis = p1.distance(p2)
+        if distance > mdis:
+            mdis = distance
+            pair = [c1, c2]
+
+    print(pair)
+    id_line = pair[0]
+    id_tria = pair[1]
+    if cnt_dict[pair[0]]["len"] < cnt_dict[pair[1]]["len"]:
+        id_line = pair[1]
+        id_tria = pair[0]
+
+    print("Line: ", id_line, cnt_dict[id_line]["len"], cnt_dict[id_line]["cen"])
+    print("Triangle: ", id_line, cnt_dict[id_tria]["len"], cnt_dict[id_tria]["cen"])
+
+    point_line = Point(cnt_dict[id_line]["cen"])
+    point_tria = Point(cnt_dict[id_tria]["cen"])
+    # cv2.circle(img, (int(point_line.x), int(point_line.y)), radius=2, color=colors[0], thickness=-1)
+    # cv2.circle(img, (int(point_tria.x), int(point_tria.y)), radius=2, color=colors[1], thickness=-1)
+    # cv2.imshow("Image", img)
+    # cv2.waitKey(0)
+    # exit()
+    lst = LineString([point_line, point_tria])
+    print("Linestring: ", lst)
+
+    lineA, lineB = list(lst.coords), [[0, 0], [1, 0]]
+    diff = angle(lineA, lineB)
+    cm = ""
+    if 0 <= diff < 10:
+        cm = "0 deg Ox - right"
+    if 170 < diff <= 180:
+        cm = "180 deg Ox - left"
+    if 85 <= diff <= 90:
+        lineA, lineB = list(lst.coords), [[0, 0], [0, 1]]
+        diff = angle(lineA, lineB)
+        if 0 <= diff < 10:
+            cm = "0 deg Oy - down"
+        if 170 < diff <= 180:
+            cm = "180 deg Oy - up"
+
+    print(diff, cm)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    bottomLeftCornerOfText = (10, 500)
+    fontScale = 1
+    fontColor = (255, 255, 255)
+    thickness = 1
+    lineType = 2
+
+    cv2.putText(img, cm,bottomLeftCornerOfText,font,fontScale,fontColor,thickness,lineType)
     cv2.imshow("Image", img)
     cv2.waitKey(0)
     exit()

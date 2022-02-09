@@ -363,7 +363,7 @@ def generate_lane_markings(road_lanes):
 import cv2
 import imutils
 import matplotlib.pyplot as plt
-from typing import List
+from typing import List, Tuple
 from math import floor, ceil
 from shapely import affinity
 from shapely.geometry import LineString, Point
@@ -373,6 +373,20 @@ from modules.common import pairs, angle, reverse_geom, translate_ls_to_new_origi
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
+    class Contour:
+        def __init__(self, idx: int, length: float, centeroid: Tuple[int, int], coords):
+            self.idx =idx
+            self.length = length
+            self.centeroid = centeroid
+            self.coords = coords
+            self.type = None
+            self.vertexes = None
+
+        def set_type(self, shape):
+            self.type = shape
+
+        def set_vertexes(self, vertexes):
+            self.vertexes = vertexes
 
     def draw(title, img):
         plt.title(title)
@@ -387,10 +401,10 @@ if __name__ == '__main__':
         return int(sum_x / length), int(sum_y / length)
 
 
-    img = cv2.imread("samples/road2.jpeg")
+    kernel = np.ones((2, 1))
+    img = cv2.imread("samples/road5a.jpeg")
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img_canny = cv2.Canny(img_gray, 100, 100)
-    kernel = np.ones((2, 2))
     img_dilate = cv2.dilate(img_canny, kernel, iterations=1)
     img_erode = cv2.erode(img_dilate, kernel, iterations=1)
     contours, hierarchy = cv2.findContours(img_erode, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -402,37 +416,52 @@ if __name__ == '__main__':
     # draw("Step 5", img_dilate)
     # draw("Step 6", img_erode)
 
-    print(len(contours))
+    print("Number of contours: ", len(contours))
 
     colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 0, 255)]
-    centers = []
     cnt_dict = []
-
+    cnt_tri = None
     for i, cnt in enumerate(contours):
-        cnt_dict.append({
-            'i': i,
-            "len": cv2.arcLength(cnt, True),
-            "cen": get_centeroid(cnt),
-            "cnt": cnt
-        })
-        # cv2.drawContours(img, [cnt], -1, (255, 0, 0), 1)
-        # cv2.circle(img, get_centeroid(cnt), radius=3, color=(0, 0, 255), thickness=-1)
+        contour = Contour(i, cv2.arcLength(cnt, True), get_centeroid(cnt), cnt)
+        approx = cv2.approxPolyDP(cnt, 0.07 * cv2.arcLength(cnt, True), True)
+        if len(approx) == 3:
+            # cv2.drawContours(img, [cnt], 0, (0, 255, 0), 2)
+            contour.set_type("triangle")
+            contour.set_vertexes(approx)
+            cnt_tri = contour
+        cnt_dict.append(contour)
 
-    # cnt = cnt_dict[4]["cnt"]
-    # cv2.drawContours(img, [cnt], -1, (255, 0, 0), 1)
+        # cv2.drawContours(img, [contour.coords], -1, (0, 0, 255), 1)
+        cv2.circle(img, contour.centeroid, radius=3, color=(0, 0, 255), thickness=-1)
+
+    # for vertex in cnt_tri.vertexes:
+    #     cv2.circle(img, (vertex[0][0], vertex[0][1]), 2, 255, -1)
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
+
+    assert cnt_tri is not None
+    print("Triangle found: ")
+    print("Coords: ", cnt_tri.vertexes)
+    print("Centeroid: ", cnt_tri.centeroid)
+    print("========")
+    sorted_cnt_dict = sorted(cnt_dict, key=lambda x: x.length)
+
+    # exit()
+
+    from shapely.geometry import Point, LineString
+    centers = []
+    for cnt in cnt_dict:
+        centers.append(list(cnt.centeroid))
+        # cv2.circle(img, cnt.centeroid, radius=3, color=(0, 0, 255), thickness=-1)
+
     # cv2.imshow("Image", img)
     # cv2.waitKey(0)
     # exit()
-    from shapely.geometry import Point, LineString
-    points = []
-    for it in cnt_dict:
-        points.append(list(it["cen"]))
 
     from sklearn.cluster import DBSCAN
     import numpy as np
-    print(points)
-    X = np.array(points)
-    db = DBSCAN(eps=42, min_samples=1).fit(X)
+    X = np.array(centers)
+    db = DBSCAN(eps=45, min_samples=3).fit(X)
     # Number of clusters in labels, ignoring noise if present.
     labels = db.labels_
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
@@ -440,60 +469,70 @@ if __name__ == '__main__':
     print("Labels: ", labels)
     print("Estimated number of clusters: %d" % n_clusters_)
     print("Estimated number of noise points: %d" % n_noise_)
+    print("=======")
 
-    tips = []
+    # print("Label of triangle: ", db.fit_predict(np.array([cnt_tri.centeroid])))
+    point = list(cnt_tri.centeroid)
+    print("Find a group contain: ", point)
+    centers = []
     for i in set(labels):
-        Xs = X[db.labels_ == i]
-        if len(Xs) == 3:
-            tips = Xs
-            # print(i, tips)
-            # print("=====")
-    tip_ids = []
-    for id, p in enumerate(tips):
-        target = Point(p)
-        for i, item in enumerate(cnt_dict):
-            if target.distance(Point(item["cen"])) == 0:
-                tip_ids.append(i)
-                # cv2.drawContours(img, item["cnt"], -1, (0, 0, 255), 3)
-                # cv2.circle(img, (int(target.x), int(target.y)), radius=2, color=colors[id], thickness=-1)
-                print(i, item["len"], item["cen"])
-    print(tip_ids)
-    # cv2.imshow("Image", img)
-    # cv2.waitKey(0)
+        Xs = [x.tolist() for x in X[db.labels_ == i]]
+        if point in Xs:
+            centers = Xs
+            break
 
-    pair = []
-    distance = 1000000
-    for c1, c2 in pairs(tip_ids):
-        p1 = Point(cnt_dict[c1]["cen"])
-        p2 = Point(cnt_dict[c2]["cen"])
-        mdis = p1.distance(p2)
-        if distance > mdis:
-            mdis = distance
-            pair = [c1, c2]
+    print("Found a group: ", centers)
+    cnts = []
+    for cnt in cnt_dict:
+        for center in centers:
+            if list(cnt.centeroid) == center:
+                cnts.append(cnt)
 
-    print(pair)
-    id_line = pair[0]
-    id_tria = pair[1]
-    if cnt_dict[pair[0]]["len"] < cnt_dict[pair[1]]["len"]:
-        id_line = pair[1]
-        id_tria = pair[0]
-
-    print("Line: ", id_line, cnt_dict[id_line]["len"], cnt_dict[id_line]["cen"])
-    print("Triangle: ", id_line, cnt_dict[id_tria]["len"], cnt_dict[id_tria]["cen"])
-
-    point_line = Point(cnt_dict[id_line]["cen"])
-    point_tria = Point(cnt_dict[id_tria]["cen"])
-    # cv2.circle(img, (int(point_line.x), int(point_line.y)), radius=2, color=colors[0], thickness=-1)
-    # cv2.circle(img, (int(point_tria.x), int(point_tria.y)), radius=2, color=colors[1], thickness=-1)
+    # for cnt in cnts:
+    #     cv2.circle(img, cnt.centeroid, radius=3, color=(0, 0, 255), thickness=-1)
+    #
     # cv2.imshow("Image", img)
     # cv2.waitKey(0)
     # exit()
+
+    print("Length triangle points: ", len(cnts))
+    assert len(cnts) == 3
+
+    pair = []
+    min_distance = 1000000
+    for c1, c2 in pairs(cnts):
+        p1 = Point(c1.centeroid)
+        p2 = Point(c2.centeroid)
+        mdis = p1.distance(p2)
+        print(p1, p2, mdis)
+        if mdis < min_distance:
+            min_distance = mdis
+            pair = [c1, c2]
+
+    # for cnt in pair:
+    #     cv2.circle(img, cnt.centeroid, radius=3, color=(0, 0, 255), thickness=-1)
+    # cv2.imshow("Image", img)
+    # cv2.waitKey(0)
+
+    if cnt_tri in pair:
+        assert True
+    else:
+        assert False
+    print("Pair: ", pair)
+    print("======")
+
+    point_line, point_tria = None, None
+    for cnt in pair:
+        if cnt.type == "triangle":
+            point_tria = cnt.centeroid
+        else:
+            point_line = cnt.centeroid
+
     lst = LineString([point_line, point_tria])
-    print("Linestring: ", lst)
 
     lineA, lineB = list(lst.coords), [[0, 0], [1, 0]]
     diff = angle(lineA, lineB)
-    cm = ""
+    cm = None
     if 0 <= diff < 10:
         cm = "0 deg Ox - right"
     if 170 < diff <= 180:
@@ -506,15 +545,15 @@ if __name__ == '__main__':
         if 170 < diff <= 180:
             cm = "180 deg Oy - up"
 
+    if cm is None:
+        cm = f'deg Ox'
     print(diff, cm)
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    bottomLeftCornerOfText = (10, 500)
-    fontScale = 1
-    fontColor = (255, 255, 255)
-    thickness = 1
-    lineType = 2
+    for cnt in pair:
+        cv2.drawContours(img, [cnt.coords], -1, (0, 0, 255), 2)
+        if cnt.type == "triangle":
+            for vertex in cnt.vertexes:
+                cv2.circle(img, (vertex[0][0], vertex[0][1]), 3, 255, -1)
 
-    cv2.putText(img, cm,bottomLeftCornerOfText,font,fontScale,fontColor,thickness,lineType)
     cv2.imshow("Image", img)
     cv2.waitKey(0)
     exit()

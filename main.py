@@ -419,7 +419,7 @@ if __name__ == '__main__':
     print("Number of contours: ", len(contours))
 
     colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 0, 255)]
-    cnt_dict = []
+    cnt_list = []
     cnt_tri = None
     for i, cnt in enumerate(contours):
         contour = Contour(i, cv2.arcLength(cnt, True), get_centeroid(cnt), cnt)
@@ -429,7 +429,7 @@ if __name__ == '__main__':
             contour.set_type("triangle")
             contour.set_vertexes(approx)
             cnt_tri = contour
-        cnt_dict.append(contour)
+        cnt_list.append(contour)
 
         # cv2.drawContours(img, [contour.coords], -1, (0, 0, 255), 1)
         cv2.circle(img, contour.centeroid, radius=3, color=(0, 0, 255), thickness=-1)
@@ -444,13 +444,13 @@ if __name__ == '__main__':
     print("Coords: ", cnt_tri.vertexes)
     print("Centeroid: ", cnt_tri.centeroid)
     print("========")
-    sorted_cnt_dict = sorted(cnt_dict, key=lambda x: x.length)
+    sorted_cnt_dict = sorted(cnt_list, key=lambda x: x.length)
 
     # exit()
 
     from shapely.geometry import Point, LineString
     centers = []
-    for cnt in cnt_dict:
+    for cnt in cnt_list:
         centers.append(list(cnt.centeroid))
         # cv2.circle(img, cnt.centeroid, radius=3, color=(0, 0, 255), thickness=-1)
 
@@ -483,7 +483,7 @@ if __name__ == '__main__':
 
     print("Found a group: ", centers)
     cnts = []
-    for cnt in cnt_dict:
+    for cnt in cnt_list:
         for center in centers:
             if list(cnt.centeroid) == center:
                 cnts.append(cnt)

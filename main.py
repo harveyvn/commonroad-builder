@@ -1,20 +1,27 @@
-import math
-
-import shapely.geometry
-from typing import List
-
-import modules.models
-from modules.crisce import extract_data_from_scenario
-from modules.roadlane import categorize_roadlane
-from modules.analyzer import Analyzer
-from modules.models import Map
+import os
+import sys
+import json
 
 import click
+import platform
+import numpy as np
+import pandas as pd
 import logging as logger
-import sys
-import os
+import matplotlib.pyplot as plt
 
 from pathlib import Path
+from modules.crisce.pre_processing import Pre_Processing
+from modules.crisce.roads import Roads
+from modules.crisce.car import Car
+from modules.crisce.kinematics import Kinematics
+from modules.crisce import extract_data_from_scenario
+from modules.roadlane import categorize_roadlane, refine_roadlanes
+from modules.analyzer import Analyzer
+from modules.models import Map
+from modules.constant import CONST
+
+if platform.system() == CONST.WINDOWS:
+    from modules.crisce.simulation import Simulation
 
 # Ensure PythonRobotics modules are included
 root_folder = Path(Path(Path(__file__).parent).parent).absolute()
@@ -22,104 +29,6 @@ sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "Bez
 # TODO REMOVE THOSE!
 sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "CubicSpline"))
 sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "BSplinePath"))
-
-from modules.crisce.pre_processing import Pre_Processing
-from modules.crisce.roads import Roads
-from modules.crisce.car import Car
-from modules.crisce.kinematics import Kinematics
-from modules.crisce.simulation import Simulation
-import matplotlib.pyplot as plt
-import numpy as np
-
-import pandas as pd
-
-import json
-
-# TODO Are those global Constant?
-car_length_sim = 4.670000586694935
-
-crash_impact_model = {
-    "front_left": [
-        "headlight_L",
-        "hood",
-        "fender_L",
-        "bumper_F",
-        "bumperbar_F",
-        "suspension_F",
-        "body_wagon"
-    ],
-
-    "front_right": [
-        "hood",
-        "bumper_F",
-        "bumperbar_F",
-        "fender_R",
-        "headlight_R",
-        "body_wagon",
-        "suspension_F"
-    ],
-
-    "front_mid": [
-        "bumperbar_F",
-        "radiator",
-        "body_wagon",
-        "headlight_R",
-        "headlight_L",
-        "bumper_F",
-        "fender_R",
-        "fender_L",
-        "hood",
-        "suspension_F"
-    ],
-
-    "left_mid": [
-        "door_RL_wagon",
-        "body_wagon",
-        "doorglass_FL",
-        "mirror_L",
-        "door_FL",
-    ],
-
-    "rear_left": [
-        "suspension_R",
-        "exhaust_i6_petrol",
-        "taillight_L"
-        "body_wagon",
-        "bumper_R",
-        "tailgate",
-        "bumper_R"
-    ],
-
-    "rear_mid": [
-        "tailgate",
-        "tailgateglass",
-        "taillight_L",
-        "taillight_R",
-        "exhaust_i6_petrol",
-        "bumper_R",
-        "body_wagon",
-        "suspension_R"
-    ],
-
-    "rear_right": [
-        "suspension_R",
-        "exhaust_i6_petrol",
-        "taillight_R",
-        "body_wagon",
-        "tailgateglass",
-        "tailgate",
-        "bumper_R"
-    ],
-
-    "right_mid": [
-        "door_RR_wagon",
-        "body_wagon",
-        "doorglass_FR",
-        "mirror_R",
-        "door_FR"
-    ]
-
-}
 
 
 def setup_logging(log_to, debug):
@@ -251,8 +160,8 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                   show_image=show_image, output_folder=output_folder,
                                                                   external=sketch_type_external,
                                                                   external_impact_points=external_impact_points,
-                                                                  crash_impact_locations=crash_impact_model,
-                                                                  car_length_sim=car_length_sim)
+                                                                  crash_impact_locations=CONST.CRISCE_IMPACT_MODEL,
+                                                                  car_length_sim=CONST.CAR_LENGTH_SIM)
 
         car_length, car_width = car.getCarDimensions()
         height, width = car.getImageDimensions()
@@ -263,7 +172,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                      show_image=show_image,
                                                                      output_folder=output_folder, car_length=car_length,
                                                                      car_width=car_width,
-                                                                     car_length_sim=car_length_sim)
+                                                                     car_length_sim=CONST.CAR_LENGTH_SIM)
 
         # Step 3: Plan the trajectories
         # TODO Add parameter to decide whih planner to use
@@ -284,9 +193,9 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                 lane_nodes=lane_nodes, kinematics=kinematics,
                                 time_efficiency=time_efficiency, output_folder=simulation_folder,
                                 car_length=car_length, car_width=car_width,
-                                car_length_sim=car_length_sim, sketch_type_external=sketch_type_external,
+                                car_length_sim=CONST.CAR_LENGTH_SIM, sketch_type_external=sketch_type_external,
                                 height=height, width=width,
-                                crash_impact_model=crash_impact_model,
+                                crash_impact_model=CONST.CRISCE_IMPACT_MODEL,
                                 sampling_frequency=5,
                                 road_lanes=road_lanes)
 
@@ -451,10 +360,106 @@ def generate_lane_markings(road_lanes):
     return roads
 
 
+import cv2
+import imutils
+import matplotlib.pyplot as plt
+from typing import List
+from math import floor, ceil
+from shapely import affinity
+from shapely.geometry import LineString, Point
+from modules.common import pairs, angle, reverse_geom, translate_ls_to_new_origin, slice_when
+
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
+
+    def draw(title, img):
+        plt.title(title)
+        plt.imshow(img, cmap='gray')
+        plt.show()
+
+
+    def get_centeroid(cnt):
+        length = len(cnt)
+        sum_x = np.sum(cnt[..., 0])
+        sum_y = np.sum(cnt[..., 1])
+        return int(sum_x / length), int(sum_y / length)
+
+
+    img = cv2.imread("samples/road5.jpeg")
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_canny = cv2.Canny(img_gray, 100, 100)
+    kernel = np.ones((2, 2))
+    img_dilate = cv2.dilate(img_canny, kernel, iterations=1)
+    img_erode = cv2.erode(img_dilate, kernel, iterations=1)
+    contours, hierarchy = cv2.findContours(img_erode, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    # draw("Step 1", img)
+    # draw("Step 2", img_gray)
+    # draw("Step 3", img_blur)
+    # draw("Step 4", img_canny)
+    # draw("Step 5", img_dilate)
+    # draw("Step 6", img_erode)
+
+    print(len(contours))
+
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 0, 255)]
+    centers = []
+    cnt_dict = []
+
+    for i, cnt in enumerate(contours):
+        cnt_dict.append({
+            'i': i,
+            "len": cv2.arcLength(cnt, True),
+            "cen": get_centeroid(cnt),
+            "cnt": cnt
+        })
+        # cv2.drawContours(img, [cnt], -1, (255, 0, 0), 1)
+        # cv2.circle(img, get_centeroid(cnt), radius=3, color=(0, 0, 255), thickness=-1)
+
+    # cnt = cnt_dict[4]["cnt"]
+    # cv2.drawContours(img, [cnt], -1, (255, 0, 0), 1)
+    # cv2.imshow("Image", img)
+    # cv2.waitKey(0)
+    # exit()
+    from shapely.geometry import Point
+    points = []
+    for it in cnt_dict:
+        points.append(list(it["cen"]))
+
+    from sklearn.cluster import DBSCAN
+    import numpy as np
+    print(points)
+    X = np.array(points)
+    db = DBSCAN(eps=30, min_samples=1).fit(X)
+    # Number of clusters in labels, ignoring noise if present.
+    labels = db.labels_
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    n_noise_ = list(labels).count(-1)
+    print("Estimated number of clusters: %d" % n_clusters_)
+    print("Estimated number of noise points: %d" % n_noise_)
+
+    tips = []
+    for i in set(labels):
+        Xs = X[db.labels_ == i]
+        if len(Xs) == 3:
+            tips = Xs
+            print(i, tips)
+            print("=====")
+    for p in tips:
+        target = Point(p)
+        for item in cnt_dict:
+            if target.distance(Point(item["cen"])) == 0:
+                # cv2.drawContours(img, item["cnt"], -1, (0, 0, 255), 3)
+                cv2.circle(img, (int(target.x), int(target.y)), radius=3, color=(0, 0, 255), thickness=-1)
+
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
+    exit()
+
     # straights = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692]
-    # for name in straights:
+    # for name in [102804]:
     #     roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/single/{name}')
     #     lane_factory = categorize_roadlane(road_lanes)
     #     (image, baselines, segments) = lane_factory.run()
@@ -463,13 +468,28 @@ if __name__ == '__main__':
     #         analyzer = Analyzer(image=image, lanelines=baselines, road=segment)
     #         lane_dict = analyzer.search_laneline()
     #         analyzer.categorize_laneline(lane_dict)
+    #         analyzer.visualize()
     #         segment.generate_lanes()
     #
     #     network = Map(segments, image)
     #     network.draw(True)
     #     network.generate_road_with_ratio(lane_nodes, name)
 
+    # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
+    # parallel = [100, 101, 105222, 119897, 128719, 171831]
+    for s in [128719]:
+        roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/parallel/{s}')
 
+        if road_lanes["road_type"] > 0:
+            road_lanes = refine_roadlanes(road_lanes)
 
-    # exit()
-    cli()
+        lane_factory = categorize_roadlane(road_lanes)
+        (image, baselines, segments) = lane_factory.run()
+        for segment in segments:
+            analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
+            lane_dict = analyzer.search_laneline()
+            analyzer.categorize_laneline(lane_dict)
+            analyzer.visualize()
+            # segment.generate_lanes()
+
+    # cli()

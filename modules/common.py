@@ -90,7 +90,7 @@ def angle(lineA, lineB):
     return ang_deg
 
 
-def midpoint(p1, p2):
+def midpoint(p1: Point, p2: Point):
     return Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
 
 

@@ -763,13 +763,12 @@ class Roads():
             scaled_lane_width = [width * a_ratio for width in width_of_lanes]
             scaled_lane_length = [length * a_ratio for length in length_of_lanes]
 
-            self.roads["large_lane_midpoints"] = extrapolated_ordered_midpoint
             self.roads["sketch_lane_width"] = width_of_lanes
             self.roads["sketch_lane_length"] = length_of_lanes
+            self.roads["large_lane_midpoints"] = extrapolated_ordered_midpoint
             self.roads["small_lane_midpoints"] = small_lane_midpoints
             self.roads["scaled_lane_width"] = scaled_lane_width
             self.roads["scaled_lane_length"] = scaled_lane_length
-            self.roads["sequence_of_lanes"] = list(zip(small_lane_midpoints, scaled_lane_length, scaled_lane_width))
 
             # self.pre_process.showImage("distortion and mapping", road_image)
 

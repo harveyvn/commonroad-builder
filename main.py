@@ -1,20 +1,28 @@
-import math
-
-import shapely.geometry
-from typing import List
-
-import modules.models
-from modules.crisce import extract_data_from_scenario
-from modules.roadlane import categorize_roadlane
-from modules.analyzer import Analyzer
-from modules.models import Map
+import os
+import sys
+import cv2
+import json
 
 import click
+import platform
+import numpy as np
+import pandas as pd
 import logging as logger
-import sys
-import os
+import matplotlib.pyplot as plt
 
 from pathlib import Path
+from modules.crisce.pre_processing import Pre_Processing
+from modules.crisce.roads import Roads
+from modules.crisce.car import Car
+from modules.crisce.kinematics import Kinematics
+from modules.crisce import extract_data_from_scenario
+from modules.roadlane import categorize_roadlane, refine_roadlanes
+from modules.analyzer import Analyzer
+from modules.models import Map
+from modules.constant import CONST
+
+if platform.system() == CONST.WINDOWS:
+    from modules.crisce.simulation import Simulation
 
 # Ensure PythonRobotics modules are included
 root_folder = Path(Path(Path(__file__).parent).parent).absolute()
@@ -22,104 +30,6 @@ sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "Bez
 # TODO REMOVE THOSE!
 sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "CubicSpline"))
 sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "BSplinePath"))
-
-from modules.crisce.pre_processing import Pre_Processing
-from modules.crisce.roads import Roads
-from modules.crisce.car import Car
-from modules.crisce.kinematics import Kinematics
-from modules.crisce.simulation import Simulation
-import matplotlib.pyplot as plt
-import numpy as np
-
-import pandas as pd
-
-import json
-
-# TODO Are those global Constant?
-car_length_sim = 4.670000586694935
-
-crash_impact_model = {
-    "front_left": [
-        "headlight_L",
-        "hood",
-        "fender_L",
-        "bumper_F",
-        "bumperbar_F",
-        "suspension_F",
-        "body_wagon"
-    ],
-
-    "front_right": [
-        "hood",
-        "bumper_F",
-        "bumperbar_F",
-        "fender_R",
-        "headlight_R",
-        "body_wagon",
-        "suspension_F"
-    ],
-
-    "front_mid": [
-        "bumperbar_F",
-        "radiator",
-        "body_wagon",
-        "headlight_R",
-        "headlight_L",
-        "bumper_F",
-        "fender_R",
-        "fender_L",
-        "hood",
-        "suspension_F"
-    ],
-
-    "left_mid": [
-        "door_RL_wagon",
-        "body_wagon",
-        "doorglass_FL",
-        "mirror_L",
-        "door_FL",
-    ],
-
-    "rear_left": [
-        "suspension_R",
-        "exhaust_i6_petrol",
-        "taillight_L"
-        "body_wagon",
-        "bumper_R",
-        "tailgate",
-        "bumper_R"
-    ],
-
-    "rear_mid": [
-        "tailgate",
-        "tailgateglass",
-        "taillight_L",
-        "taillight_R",
-        "exhaust_i6_petrol",
-        "bumper_R",
-        "body_wagon",
-        "suspension_R"
-    ],
-
-    "rear_right": [
-        "suspension_R",
-        "exhaust_i6_petrol",
-        "taillight_R",
-        "body_wagon",
-        "tailgateglass",
-        "tailgate",
-        "bumper_R"
-    ],
-
-    "right_mid": [
-        "door_RR_wagon",
-        "body_wagon",
-        "doorglass_FR",
-        "mirror_R",
-        "door_FR"
-    ]
-
-}
 
 
 def setup_logging(log_to, debug):
@@ -251,8 +161,8 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                   show_image=show_image, output_folder=output_folder,
                                                                   external=sketch_type_external,
                                                                   external_impact_points=external_impact_points,
-                                                                  crash_impact_locations=crash_impact_model,
-                                                                  car_length_sim=car_length_sim)
+                                                                  crash_impact_locations=CONST.CRISCE_IMPACT_MODEL,
+                                                                  car_length_sim=CONST.CAR_LENGTH_SIM)
 
         car_length, car_width = car.getCarDimensions()
         height, width = car.getImageDimensions()
@@ -263,7 +173,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                      show_image=show_image,
                                                                      output_folder=output_folder, car_length=car_length,
                                                                      car_width=car_width,
-                                                                     car_length_sim=car_length_sim)
+                                                                     car_length_sim=CONST.CAR_LENGTH_SIM)
 
         # Step 3: Plan the trajectories
         # TODO Add parameter to decide whih planner to use
@@ -284,9 +194,9 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                 lane_nodes=lane_nodes, kinematics=kinematics,
                                 time_efficiency=time_efficiency, output_folder=simulation_folder,
                                 car_length=car_length, car_width=car_width,
-                                car_length_sim=car_length_sim, sketch_type_external=sketch_type_external,
+                                car_length_sim=CONST.CAR_LENGTH_SIM, sketch_type_external=sketch_type_external,
                                 height=height, width=width,
-                                crash_impact_model=crash_impact_model,
+                                crash_impact_model=CONST.CRISCE_IMPACT_MODEL,
                                 sampling_frequency=5,
                                 road_lanes=road_lanes)
 
@@ -453,8 +363,17 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    from modules.arrow import ArrowAnalyzer
+
+    kernel = np.ones((2, 1))
+    img = cv2.imread("samples/road5a.jpeg")
+    ArrowAnalyzer(kernel=kernel, img=img).run()
+
+    exit()
+
     # straights = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692]
-    # for name in straights:
+    # for name in [102804]:
     #     roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/single/{name}')
     #     lane_factory = categorize_roadlane(road_lanes)
     #     (image, baselines, segments) = lane_factory.run()
@@ -463,13 +382,28 @@ if __name__ == '__main__':
     #         analyzer = Analyzer(image=image, lanelines=baselines, road=segment)
     #         lane_dict = analyzer.search_laneline()
     #         analyzer.categorize_laneline(lane_dict)
+    #         analyzer.visualize()
     #         segment.generate_lanes()
     #
     #     network = Map(segments, image)
     #     network.draw(True)
     #     network.generate_road_with_ratio(lane_nodes, name)
 
+    # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
+    # parallel = [100, 101, 105222, 119897, 128719, 171831]
+    for s in [128719]:
+        roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/parallel/{s}')
 
+        if road_lanes["road_type"] > 0:
+            road_lanes = refine_roadlanes(road_lanes)
 
-    # exit()
-    cli()
+        lane_factory = categorize_roadlane(road_lanes)
+        (image, baselines, segments) = lane_factory.run()
+        for segment in segments:
+            analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
+            lane_dict = analyzer.search_laneline()
+            analyzer.categorize_laneline(lane_dict)
+            analyzer.visualize()
+            # segment.generate_lanes()
+
+    # cli()

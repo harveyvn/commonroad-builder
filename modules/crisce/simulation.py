@@ -9,6 +9,7 @@ import cv2
 from shapely.geometry import MultiLineString, Polygon
 import pandas as pd
 
+
 class Simulation():
 
     def __init__(self, vehicles, roads, lane_nodes, kinematics, time_efficiency, output_folder,
@@ -38,7 +39,7 @@ class Simulation():
         self.sampling_frequency = sampling_frequency
         self.road_lanes = road_lanes
 
-    def setupBeamngSimulation(self, file, beamng_port, beamng_home, beamng_user):
+    def setupBeamngSimulation(self, file, beamng_port, beamng_home, beamng_user, vehicles):
         t0 = time.time()
 
         # TODO Use GLOBAL Constants!
@@ -68,25 +69,22 @@ class Simulation():
             road.nodes.extend(self.lane_nodes[i])
             scenario.add_road(road)
 
-        for vehicle_color in self.vehicles:
-            self.crash_analysis_log["vehicles"][vehicle_color] = dict()
-            script = self.vehicles[vehicle_color]["trajectories"]["script_trajectory"]
-            angle = self.vehicles[vehicle_color]["vehicle_info"]["0"]["angle_of_car"]
-            orig_pos = self.vehicles[vehicle_color]["snapshots"][0]["center_of_car"]
-            x = orig_pos[0] * self.car_length_sim / self.car_length
-            y = distorted_height - (orig_pos[1] * self.car_length_sim / self.car_length)
-            # print("vehicle", vehicle_color, "postition = ", x, y)
+        for v in vehicles:
+            color = v.color
+            pos = v.pos
+            rot = v.rot
 
-            vehicle = Vehicle("{}_vehicle".format(vehicle_color),
+            vehicle = Vehicle("{}_vehicle".format(color),
                               model='etk800',
-                              licence="{}_007".format(vehicle_color),
-                              color=str.capitalize(vehicle_color))
-            scenario.add_vehicle(vehicle, pos=(round(x, 1), round(y, 1), 0), rot=(0, 0, -angle - 90), rot_quat=None)
-            # scenario.add_vehicle(vehicle, pos=( round(script[0]["x"], 3), round(script[0]["y"], 3), 0), rot=(0,0, -angle -90) , rot_quat=None)
+                              licence="{}_007".format(color),
+                              color=str.capitalize(color))
+            scenario.add_vehicle(vehicle, pos=pos, rot=rot, rot_quat=None)
             vehicle.attach_sensor('electrics', electrics)
             vehicle.attach_sensor("damage", damage)
             vehicle.attach_sensor("timer", timer)
-            self.crash_analysis_log["vehicles"][vehicle_color]["vehicle"] = vehicle
+
+            self.crash_analysis_log["vehicles"][color] = dict()
+            self.crash_analysis_log["vehicles"][color]["vehicle"] = vehicle
 
         scenario.make(beamng)
 
@@ -315,18 +313,27 @@ class Simulation():
 
         return (x, y, z, w)
 
-    def initiateDrive(self):
-        for vehicle_color in self.vehicles:
-            self.bng.add_debug_line(points=self.vehicles[vehicle_color]["trajectories"]["debug_trajectory"],
-                                    point_colors=self.vehicles[vehicle_color]["trajectories"]["point_colors"],
-                                    spheres=self.vehicles[vehicle_color]["trajectories"]["spheres"],
-                                    sphere_colors=self.vehicles[vehicle_color]["trajectories"]["sphere_colors"],
-                                    cling=True,
-                                    offset=0.1)
+    def initiateDrive(self, vhs):
+        for v in vhs:
+            self.bng.add_debug_line(
+                points=v.debug_script,
+                point_colors=[v.color_code for i in v.debug_script],
+                spheres=v.spheres,
+                sphere_colors=[v.color_code for i in v.spheres],
+                cling=True,
+                offset=0.1
+            )
+        # for vehicle_color in self.vehicles:
+        #     self.bng.add_debug_line(points=self.vehicles[vehicle_color]["trajectories"]["debug_trajectory"],
+        #                             point_colors=self.vehicles[vehicle_color]["trajectories"]["point_colors"],
+        #                             spheres=self.vehicles[vehicle_color]["trajectories"]["spheres"],
+        #                             sphere_colors=self.vehicles[vehicle_color]["trajectories"]["sphere_colors"],
+        #                             cling=True,
+        #                             offset=0.1)
 
         # bng.step(10)
 
-        #""" AI script must have at least 3 nodes """
+        """ AI script must have at least 3 nodes """
 
         vehicle_red = self.crash_analysis_log["vehicles"]["red"]["vehicle"]
         vehicle_blue = self.crash_analysis_log["vehicles"]["blue"]["vehicle"]
@@ -348,11 +355,17 @@ class Simulation():
         t0 = time.time()
         if (len(self.vehicles["red"]["snapshots"]) > 1):
             vehicle_red.ai_set_mode('manual')
-            vehicle_red.ai_set_script(self.vehicles["red"]["trajectories"]["script_trajectory"], cling=False)
+            # vehicle_red.ai_set_script(self.vehicles["red"]["trajectories"]["script_trajectory"], cling=False)
+            for v in vhs:
+                if v.color == "red":
+                    vehicle_red.ai_set_script(v.script, cling=False)
 
         if (len(self.vehicles["blue"]["snapshots"]) > 1):
             vehicle_blue.ai_set_mode('manual')
-            vehicle_blue.ai_set_script(self.vehicles["blue"]["trajectories"]["script_trajectory"], cling=False)
+            # vehicle_blue.ai_set_script(self.vehicles["blue"]["trajectories"]["script_trajectory"], cling=False)
+            for v in vhs:
+                if v.color == "blue":
+                    vehicle_red.ai_set_script(v.script, cling=False)
 
         self.bng.set_steps_per_second(160)
         self.bng.pause()
@@ -825,10 +838,12 @@ class Simulation():
                 self.vehicles[v_color]["snapshots"])
 
             #### ---- For Storing  the log in the excel file for data analysis------- ####
-            self.log["vehicles"][v_color]["cum_iou"] = (veh_iou / (len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
+            self.log["vehicles"][v_color]["cum_iou"] = (veh_iou / (
+                        len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
             self.log["vehicles"][v_color]["cum_iou_error"] = 100 - self.crash_analysis_log["vehicles"][v_color][
                 "cum_iou"]
-            self.log["vehicles"][v_color]["displacement_error"] = displacement / len(self.vehicles[v_color]["snapshots"])
+            self.log["vehicles"][v_color]["displacement_error"] = displacement / len(
+                self.vehicles[v_color]["snapshots"])
 
             print("\nAccuracy for the BBOX trajectory of the {} vehicles = {} % ".format(
                 v_color, (veh_iou / (len(self.vehicles[v_color]["snapshots"]) * 100)) * 100))

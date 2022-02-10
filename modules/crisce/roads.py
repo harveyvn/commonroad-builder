@@ -654,7 +654,7 @@ class Roads():
         """
 
         t0 = time.time()
-
+        a_ratio = 0
         road_lanes = dict()
 
         if (len(large_contours) == 2):
@@ -686,11 +686,11 @@ class Roads():
             scaled_lane_width = [width_of_lanes[0] * a_ratio]
             scaled_lane_length = [length_of_lanes[0] * a_ratio]
 
-            self.roads["sketch_lane_width"] = width_of_lanes
-            self.roads["sketch_lane_length"] = length_of_lanes
             self.roads["large_lane_midpoints"] = large_lane_midpoints
             self.roads["small_lane_midpoints"] = small_lane_midpoints
+            self.roads["sketch_lane_width"] = width_of_lanes
             self.roads["scaled_lane_width"] = scaled_lane_width
+            self.roads["sketch_lane_length"] = length_of_lanes
             self.roads["scaled_lane_length"] = scaled_lane_length
 
             # self.pre_process.showImage("distortion and mapping", road_image)
@@ -769,6 +769,7 @@ class Roads():
             self.roads["small_lane_midpoints"] = small_lane_midpoints
             self.roads["scaled_lane_width"] = scaled_lane_width
             self.roads["scaled_lane_length"] = scaled_lane_length
+            # self.roads["sequence_of_lanes"] = list(zip(small_lane_midpoints, scaled_lane_length, scaled_lane_width))
 
             # self.pre_process.showImage("distortion and mapping", road_image)
 
@@ -788,4 +789,4 @@ class Roads():
         self.adjustRoadToSimulation(distorted_height)
         final_lane_nodes = self.settingRoadToBeamNG()
 
-        return self.roads, final_lane_nodes, road_lanes
+        return self.roads, final_lane_nodes, road_lanes, a_ratio

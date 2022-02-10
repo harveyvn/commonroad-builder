@@ -169,12 +169,13 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         height, width = car.getImageDimensions()
 
         # Step 2: Extract roads' information. Note: We need the size of the vehicles to rescale the roads
-        roads, lane_nodes, road_lanes = roads.extractRoadInformation(image_path=road_image_path,
-                                                                     time_efficiency=time_efficiency,
-                                                                     show_image=show_image,
-                                                                     output_folder=output_folder, car_length=car_length,
-                                                                     car_width=car_width,
-                                                                     car_length_sim=CONST.CAR_LENGTH_SIM)
+        roads, lane_nodes, road_lanes, a_ratio = roads.extractRoadInformation(image_path=road_image_path,
+                                                                              time_efficiency=time_efficiency,
+                                                                              show_image=show_image,
+                                                                              output_folder=output_folder,
+                                                                              car_length=car_length,
+                                                                              car_width=car_width,
+                                                                              car_length_sim=CONST.CAR_LENGTH_SIM)
 
         # Step 3: Plan the trajectories
         # TODO Add parameter to decide whih planner to use
@@ -184,7 +185,67 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                             output_folder=output_folder,
                                                                             show_image=show_image)
 
-        road_lanes = []
+        print("==================================================")
+        print("==================================================")
+        from shapely.geometry import LineString
+        from descartes import PolygonPatch
+        print(a_ratio)
+        print("=============\n")
+        for k, v in roads.items():
+            print(k)
+            print(v)
+            print('\n')
+
+        print(len(roads["small_lane_midpoints"][0]))
+        print(len(roads["simulation_lane_midpoints"][0]))
+
+        plt.clf()
+        road_width = roads["sketch_lane_width"][0]
+        road_poly = LineString([(t[0], t[1]) for t in roads["large_lane_midpoints"]]).buffer(road_width / 2,
+                                                                                             cap_style=2, join_style=2)
+        road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
+        plt.gca().add_patch(road_patch)
+        xs = [point[0] for point in roads["large_lane_midpoints"]]
+        ys = [point[1] for point in roads["large_lane_midpoints"]]
+        plt.plot(xs, ys, color='r')
+        plt.gca().set_aspect('equal')
+        plt.show()
+
+        plt.clf()
+        for i, item in enumerate(roads["scaled_lane_width"]):
+            road_width = roads["scaled_lane_width"][i]
+            road_poly = LineString([(t[0], t[1]) for t in roads["simulation_lane_midpoints"][i]]).buffer(road_width / 2,
+                                                                                                         cap_style=2,
+                                                                                                         join_style=2)
+            road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
+            plt.gca().add_patch(road_patch)
+            xs = [point[0] for point in roads["simulation_lane_midpoints"][i]]
+            ys = [point[1] for point in roads["simulation_lane_midpoints"][i]]
+            plt.plot(xs, ys, color='r')
+        plt.gca().set_aspect('equal')
+        plt.show()
+        # print(lane_nodes)
+        # print(road_lanes)
+        print("\n=============")
+        print("Road Beamng")
+        for l in lane_nodes:
+            print(l)
+        print("==================================================")
+
+
+        if road_lanes["road_type"] > 0:
+            road_lanes = refine_roadlanes(road_lanes)
+
+        lane_factory = categorize_roadlane(road_lanes)
+        (image, baselines, segments) = lane_factory.run()
+        for segment in segments:
+            analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
+            lane_dict = analyzer.search_laneline()
+            lines = analyzer.categorize_laneline(lane_dict)
+            # analyzer.visualize()
+            segment.generate_simlanes(lines, a_ratio, True)
+
+        exit()
 
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")
@@ -239,6 +300,10 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                 spheres=vehicle["trajectories"]["spheres"]
             )
             vhs.append(vh)
+            print(vh.color)
+            print(vh.script)
+
+        exit()
 
         simulation.bng, simulation.scenario = simulation.setupBeamngSimulation(sketch_id, beamng_port=64257,
                                                                                beamng_home=beamng_home,

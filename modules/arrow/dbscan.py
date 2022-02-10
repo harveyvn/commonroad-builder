@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import List
+from typing import List, Tuple
 from sklearn.cluster import DBSCAN
 
 
@@ -11,25 +11,22 @@ class DBScan:
         self.points = points
         self.db = DBSCAN(eps=epsilon, min_samples=min_samples).fit(X)
 
-    def get_info(self, debug: bool = False):
+    def get_info(self):
         labels = self.db.labels_
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
         n_noise_ = list(labels).count(-1)
-        if debug:
-            print("Labels: ", labels)
-            print("Estimated number of clusters: %d" % n_clusters_)
-            print("Estimated number of noise points: %d" % n_noise_)
-            print("=======")
+        print("Labels: ", labels)
+        print("Estimated number of clusters: %d" % n_clusters_)
+        print("Estimated number of noise points: %d" % n_noise_)
+        print("=======")
         return labels, n_clusters_, n_noise_
 
-    def find_group_contain_point(self, point, debug: bool = False, img: np.array = None):
+    def find_group_contain_point(self, point: Tuple, debug: bool = False, img: np.array = None):
         X, labels, group = np.array(self.points), self.db.labels_, []
-        target = list(point)
-        print(target)
         for i in set(labels):
             Xs = [x.tolist() for x in X[self.db.labels_ == i]]
-            print(Xs)
-            if target in Xs:
+            Xs = [tuple(x) for x in Xs]
+            if point in Xs:
                 group = Xs
                 break
         if debug:

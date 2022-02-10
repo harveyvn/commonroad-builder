@@ -62,8 +62,6 @@ class ImgCV2:
                 triangle = contour
             cnt_list.append(contour)
 
-        print(f'Found a triangle when epsilon is {epsilon}!')
-
         if debug:
             plt.imshow(self.img, cmap='gray')
             for v in ArrowLib.contour2list(triangle.vertexes):

@@ -53,6 +53,7 @@ class Segment:
                 ys = [point[1] for point in sl.mid]
                 plt.plot(xs, ys, color='r')
             plt.gca().set_aspect('equal')
+            plt.title("Road new CRISCE")
             plt.show()
             exit()
 

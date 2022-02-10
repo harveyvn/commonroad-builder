@@ -209,6 +209,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         ys = [point[1] for point in roads["large_lane_midpoints"]]
         plt.plot(xs, ys, color='r')
         plt.gca().set_aspect('equal')
+        plt.title("Road Sketch")
         plt.show()
 
         plt.clf()
@@ -223,6 +224,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             ys = [point[1] for point in roads["simulation_lane_midpoints"][i]]
             plt.plot(xs, ys, color='r')
         plt.gca().set_aspect('equal')
+        plt.title("Road CRISCE")
         plt.show()
         # print(lane_nodes)
         # print(road_lanes)

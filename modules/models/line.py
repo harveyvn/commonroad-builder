@@ -1,17 +1,19 @@
 from math import trunc
+from shapely.geometry import LineString
 from modules.constant import CONST
 
 
 class Line:
-    def __init__(self, marks: dict):
-        keys = list(marks.keys())
-        threshold = 2 / 3 if len(keys) > 2 else 0.5
-        total = sum(v.pattern for v in marks.values())
+    def __init__(self, marks: dict = None, ls: LineString = None):
+        if marks is not None:
+            keys = list(marks.keys())
+            threshold = 2 / 3 if len(keys) > 2 else 0.5
+            total = sum(v.pattern for v in marks.values())
 
-        self.num = CONST.SINGLE if len(keys) <= 4 else CONST.DOUBLE
-        self.pattern = CONST.SOLID if total / len(keys) >= threshold else CONST.DASHED
-        self.keys = keys
-        self.ls = None
+            self.num = CONST.SINGLE if len(keys) <= 4 else CONST.DOUBLE
+            self.pattern = CONST.SOLID if total / len(keys) >= threshold else CONST.DASHED
+            self.keys = keys
+        self.ls = ls
 
     def get_peak(self):
         length = len(self.keys)

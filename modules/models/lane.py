@@ -1,10 +1,51 @@
+from typing import List, Tuple
+from .line import Line
+from .lib import generate
+from modules.common import midpoint
 from shapely.geometry import LineString, Point
 
 
 class Lane:
-    def __init__(self, left_boundary: LineString, right_boundary: LineString):
-        self.left_boundary = left_boundary
-        self.right_boundary = right_boundary
+    def __init__(self, left: Line, right: Line):
+        self.left = left
+        self.right = right
+
+        mps = []
+        for l, r in zip(list(left.ls.coords), list(right.ls.coords)):
+            point_left = Point(l[0], l[1])
+            point_right = Point(r[0], r[1])
+            mps.append(midpoint(point_left, point_right))
+            self.width = point_left.distance(point_right)
+        self.mid = Line(ls=LineString(mps))
+
+    def get_simlane(self, ratio):
+        ls = generate(self.left.ls, ratio, 0.1)
+        rs = generate(self.right.ls, ratio, 0.1)
+        ms = generate(self.mid.ls, ratio, ratio * self.width)
+        return SimLane(left=Stripe(ls, self.left.num, self.left.pattern),
+                       right=Stripe(rs, self.right.num, self.right.pattern),
+                       mid=ms, width=ratio * self.width)
+
+    def __str__(self):
+        return str(self.__class__) + ": " + str(self.__dict__)
+
+
+class Stripe:
+    def __init__(self, points: List, num: str, pattern: str):
+        self.points = points
+        self.num = num
+        self.pattern = pattern
+
+    def __str__(self):
+        return str(self.__class__) + ": " + str(self.__dict__)
+
+
+class SimLane:
+    def __init__(self, left: Stripe, right: Stripe, mid: List[Tuple], width: float):
+        self.left = left
+        self.right = right
+        self.mid = mid
+        self.width = width
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

@@ -9,7 +9,7 @@ from typing import List
 from shapely import affinity
 from shapely.geometry import Point, LineString
 from modules import slice_when, angle
-from modules.common import translate_ls_to_new_origin
+from modules.common import translate_ls_to_new_origin, reverse_geom
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
 from modules.models import Segment, Line
@@ -191,7 +191,7 @@ class Analyzer:
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
         # Generating corresponding lines
-        lines = [Line(dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
+        lines = [Line(marks=dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
 
         # Assign the lanes to the road
         lsts, lstrs = list(), list()
@@ -200,7 +200,10 @@ class Analyzer:
             left_lsr = affinity.rotate(self.segment.left_boundary, self.angle, (0, 0))
             for i, line in enumerate(lines):
                 distance = line.get_peak() - peaks[0]
-                ls = left_lsr.parallel_offset(distance=distance, side="right", join_style=2)
+                if i == 0:
+                    ls = left_lsr.parallel_offset(distance=distance, side="right", join_style=2)
+                else:
+                    ls = reverse_geom(left_lsr.parallel_offset(distance=distance, side="right", join_style=2))
                 lsr = affinity.rotate(ls, -self.angle, (0, 0))
                 lsts.append(ls)
                 lstrs.append(lsr)
@@ -216,8 +219,10 @@ class Analyzer:
         viz_images["before_rotate"] = lsts
         viz_images["after_rotate"] = lstrs
 
-        for l in lines:
-            print(l)
+        assert len(lstrs) == len(lines)
+        for i, line in enumerate(lines):
+            line.ls = lstrs[i]
+        return lines
 
     def visualize(self, title: str = None, is_save: bool = False):
         # Visualization: Draw a histogram to find the starting points of lane lines

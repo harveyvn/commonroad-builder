@@ -18,6 +18,7 @@ from modules.crisce.kinematics import Kinematics
 from modules.crisce import extract_data_from_scenario
 from modules.roadlane import categorize_roadlane, refine_roadlanes
 from modules.analyzer import Analyzer
+from modules.arrow import ArrowAnalyzer
 from modules.models import Map
 from modules.constant import CONST
 
@@ -183,7 +184,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                             output_folder=output_folder,
                                                                             show_image=show_image)
 
-        road_lanes = generate_lane_markings(road_lanes)
+        road_lanes = []
 
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")
@@ -206,9 +207,43 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         sketch_id = os.path.basename(os.path.dirname(sketch_image_path))
         logger.info(f"Execution of sketch {sketch_id} Starts")
 
+        class Vh:
+            def __init__(self, script, pos, rot, color, color_code, debug_script, spheres):
+                import matplotlib.colors as colors
+                self.script = script
+                self.debug_script = debug_script
+                self.pos = pos
+                self.rot = rot
+                self.color = color
+                self.color_code = colors.to_rgba(list(map(float, color_code.split())))
+                self.spheres = spheres
+
+        vhs = []
+        for color in vehicles:
+            color_code = CONST.RED_RGBA
+            if color == "blue":
+                color_code = CONST.BLUE_RGBA
+            vehicle = vehicles[color]
+            angle = vehicle["vehicle_info"]["0"]["angle_of_car"]
+            orig_pos = vehicle["snapshots"][0]["center_of_car"]
+            distorted_height = height * CONST.CAR_LENGTH_SIM / car_length
+            x = orig_pos[0] * CONST.CAR_LENGTH_SIM / car_length
+            y = distorted_height - (orig_pos[1] * CONST.CAR_LENGTH_SIM / car_length)
+            vh = Vh(
+                script=vehicle["trajectories"]["script_trajectory"],
+                pos=(round(x, 1), round(y, 1), 0),
+                rot=(0, 0, -angle - 90),
+                color=color,
+                color_code=color_code,
+                debug_script=vehicle["trajectories"]["debug_trajectory"],
+                spheres=vehicle["trajectories"]["spheres"]
+            )
+            vhs.append(vh)
+
         simulation.bng, simulation.scenario = simulation.setupBeamngSimulation(sketch_id, beamng_port=64257,
                                                                                beamng_home=beamng_home,
-                                                                               beamng_user=beamng_user)
+                                                                               beamng_user=beamng_user,
+                                                                               vehicles=vhs)
         # Make sure user sees the crash from the above
         simulation.aerialViewCamera()
 
@@ -231,7 +266,8 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
 
         # This also requires the road, so cannot be called before the end of the simulation
         simulation.plotSimulationCrashSketch()
-        simulation.initiateDrive()
+        simulation.initiateDrive(vhs)
+        exit()
 
         logger.info("Execution Ends")
 
@@ -342,10 +378,6 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
 
         with open(os.path.join(output_folder, "summary.json"), 'w') as fp:
             json.dump(log, fp, indent=1)
-
-
-
-
     finally:
         pass
 
@@ -363,36 +395,21 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from modules.arrow import ArrowAnalyzer
-
-    kernel = np.ones((2, 1))
-    img = cv2.imread("samples/road5a.jpeg")
-    ArrowAnalyzer(kernel=kernel, img=img).run()
-
+    cli()
     exit()
-
-    # straights = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692]
-    # for name in [102804]:
-    #     roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/single/{name}')
-    #     lane_factory = categorize_roadlane(road_lanes)
-    #     (image, baselines, segments) = lane_factory.run()
-    #
-    #     for segment in segments:
-    #         analyzer = Analyzer(image=image, lanelines=baselines, road=segment)
-    #         lane_dict = analyzer.search_laneline()
-    #         analyzer.categorize_laneline(lane_dict)
-    #         analyzer.visualize()
-    #         segment.generate_lanes()
-    #
-    #     network = Map(segments, image)
-    #     network.draw(True)
-    #     network.generate_road_with_ratio(lane_nodes, name)
-
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
-    for s in [128719]:
-        roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/parallel/{s}')
+    for s in [142845]:
+        path = f'CIREN/single/{s}'
+
+        # Extract arrow direction
+        kernel = np.ones((2, 2))
+        img = cv2.imread(f'{path}/road.jpeg')
+        diff, cm = ArrowAnalyzer(kernel=kernel, img=img).run()
+        print(diff, cm)
+
+        # Extract road lanes
+        roads, lane_nodes, road_lanes = extract_data_from_scenario(path)
 
         if road_lanes["road_type"] > 0:
             road_lanes = refine_roadlanes(road_lanes)
@@ -405,5 +422,3 @@ if __name__ == '__main__':
             analyzer.categorize_laneline(lane_dict)
             analyzer.visualize()
             # segment.generate_lanes()
-
-    # cli()

@@ -33,19 +33,17 @@ class ImgCV2:
 
         cnt_list, triangle, max_eps = [], None, 0.1
         # Search contour with triangle
-        while triangle is None and epsilon <= max_eps:
-            cnt_list = []
-            for i, cnt in enumerate(contours):
-                contour = Contour(i, cv2.arcLength(cnt, True), get_centeroid(cnt), cnt)
-                approx = cv2.approxPolyDP(cnt, epsilon * cv2.arcLength(cnt, True), True)
-                if len(approx) == 3:
-                    contour.set_type("triangle")
-                    contour.set_vertexes(approx)
-                    triangle = contour
-                cnt_list.append(contour)
-            epsilon += 0.01
+        cnt_list = []
+        for i, cnt in enumerate(contours):
+            contour = Contour(i, cv2.arcLength(cnt, True), get_centeroid(cnt), cnt)
+            approx = cv2.approxPolyDP(cnt, epsilon * cv2.arcLength(cnt, True), True)
+            if len(approx) == 3:
+                contour.set_type("triangle")
+                contour.set_vertexes(approx)
+                triangle = contour
+            cnt_list.append(contour)
 
-        print(f'Find a triangle when epsilon is {epsilon}!')
+        print(f'Found a triangle when epsilon is {epsilon}!')
 
         if debug:
             plt.imshow(self.img, cmap='gray')

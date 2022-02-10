@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import List
 from .contour import Contour
-from .lib_arrow import draw, get_centeroid, contour2list
+from .lib import Arrow
 
 
 class ImgCV2:
@@ -18,24 +18,24 @@ class ImgCV2:
         img_erode = cv2.erode(img_dilate, self.kernel, iterations=1)
         contours, hierarchy = cv2.findContours(img_erode, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         if debug:
-            draw("Step 1", self.img)
-            draw("Step 2", img_gray)
-            draw("Step 3", img_canny)
-            draw("Step 4", img_dilate)
-            draw("Step 5", img_erode)
+            Arrow.draw("Step 1", self.img)
+            Arrow.draw("Step 2", img_gray)
+            Arrow.draw("Step 3", img_canny)
+            Arrow.draw("Step 4", img_dilate)
+            Arrow.draw("Step 5", img_erode)
             exit()
         return contours
 
     def find_contour_triangle(self, contours: List, epsilon: float = 0.07, debug: bool = False):
         if len(contours) == 0:
-            print("Error: Empty contours")
+            print("Error: Empty contours!")
             return [], []
 
         cnt_list, triangle, max_eps = [], None, 0.1
         # Search contour with triangle
         cnt_list = []
         for i, cnt in enumerate(contours):
-            contour = Contour(i, cv2.arcLength(cnt, True), get_centeroid(cnt), cnt)
+            contour = Contour(i, cv2.arcLength(cnt, True), Arrow.get_centeroid(cnt), cnt)
             approx = cv2.approxPolyDP(cnt, epsilon * cv2.arcLength(cnt, True), True)
             if len(approx) == 3:
                 contour.set_type("triangle")
@@ -47,7 +47,7 @@ class ImgCV2:
 
         if debug:
             plt.imshow(self.img, cmap='gray')
-            for v in contour2list(triangle.vertexes):
+            for v in Arrow.contour2list(triangle.vertexes):
                 plt.scatter(x=v[0], y=v[1], s=1, color='g')
                 plt.scatter(x=v[0], y=v[1], s=1, color='r')
             for cnt in cnt_list:

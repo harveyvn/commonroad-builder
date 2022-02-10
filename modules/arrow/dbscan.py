@@ -30,7 +30,7 @@ class DBScan:
                 group = Xs
                 break
         if debug:
-            plt.title("Found a group contain point: ")
+            plt.title("Found a group contain triangle: ")
             plt.imshow(img, cmap='gray')
             for c in group:
                 plt.scatter(x=c[0], y=c[1], s=1, color='r')

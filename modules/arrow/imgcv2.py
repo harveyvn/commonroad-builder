@@ -34,6 +34,7 @@ class ImgCV2:
 
         if debug:
             plt.imshow(self.img, cmap='gray')
+            plt.title("List of centroids")
             for c in centers:
                 plt.scatter(x=c[0], y=c[1], s=1, color='r')
             plt.show()
@@ -64,6 +65,7 @@ class ImgCV2:
 
         if debug:
             plt.imshow(self.img, cmap='gray')
+            plt.title("Found a triangle")
             for v in ArrowLib.contour2list(triangle.vertexes):
                 plt.scatter(x=v[0], y=v[1], s=1, color='g')
                 plt.scatter(x=v[0], y=v[1], s=1, color='r')

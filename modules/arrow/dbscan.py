@@ -1,6 +1,7 @@
+import cv2
 import numpy as np
-from typing import List
 import matplotlib.pyplot as plt
+from typing import List
 from sklearn.cluster import DBSCAN
 
 
@@ -20,6 +21,30 @@ class DBScan:
             print("Estimated number of noise points: %d" % n_noise_)
             print("=======")
         return labels, n_clusters_, n_noise_
+
+    def find_group_contain_point(self, point, debug: bool = False, img: np.array = None):
+        X, labels, group = np.array(self.points), self.db.labels_, []
+        target = list(point)
+        print(target)
+        for i in set(labels):
+            Xs = [x.tolist() for x in X[self.db.labels_ == i]]
+            print(Xs)
+            if target in Xs:
+                group = Xs
+                break
+        if debug:
+            plt.title("Found a group contain point: ")
+            plt.imshow(img, cmap='gray')
+            for c in group:
+                plt.scatter(x=c[0], y=c[1], s=1, color='r')
+            plt.show()
+
+            for c in group:
+                cv2.circle(img, c, radius=3, color=(0, 0, 255), thickness=-1)
+            cv2.imshow("Image", img)
+            cv2.waitKey(0)
+            exit()
+        return group
 
     def debug(self, img: np.array):
         X = np.array(self.points)

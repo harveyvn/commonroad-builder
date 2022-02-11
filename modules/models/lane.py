@@ -1,7 +1,7 @@
 from .line import Line
 from .bnglane import BngLane, Stripe
 from .lib import generate
-from modules.common import midpoint
+from modules.common import midpoint, smooth_line
 from shapely.geometry import LineString, Point
 
 
@@ -19,9 +19,9 @@ class Lane:
         self.mid = Line(ls=LineString(mps))
 
     def get_bnglane(self, ratio):
-        ls = generate(self.left.ls, ratio, 0.1)
-        rs = generate(self.right.ls, ratio, 0.1)
-        ms = generate(self.mid.ls, ratio, ratio * self.width)
+        ls = smooth_line(generate(self.left.ls, ratio, 0.1))
+        rs = smooth_line(generate(self.right.ls, ratio, 0.1))
+        ms = smooth_line(generate(self.mid.ls, ratio, ratio * self.width))
         return BngLane(left=Stripe(ls, self.left.num, self.left.pattern),
                        right=Stripe(rs, self.right.num, self.right.pattern),
                        mid=ms, width=ratio * self.width)

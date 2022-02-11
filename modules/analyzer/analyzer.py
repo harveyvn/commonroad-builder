@@ -198,7 +198,7 @@ class Analyzer:
         lsts, lstrs = list(), list()
         if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
             peaks = [l.get_peak() for l in lines]
-            left_lsr = affinity.rotate(smooth_line(self.segment.left_boundary), self.angle, (0, 0))
+            left_lsr = affinity.rotate(self.segment.left_boundary, self.angle, (0, 0))
             for i, line in enumerate(lines):
                 distance = line.get_peak() - peaks[0]
                 if i == 0:

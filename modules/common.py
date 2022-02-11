@@ -164,9 +164,7 @@ def interpolate(coords: List, axis_idx: int, image: np.array):
     return coords
 
 
-def smooth_line(lst: LineString, debug: bool = False):
-    coords = list(lst.coords)
-
+def smooth_line(coords: List, debug: bool = False):
     xs = [p[0] for p in coords]
     ys = [p[1] for p in coords]
     coefs = poly.polyfit(xs, ys, 2)
@@ -188,4 +186,4 @@ def smooth_line(lst: LineString, debug: bool = False):
         plt.show()
         exit()
 
-    return LineString(coords)
+    return coords

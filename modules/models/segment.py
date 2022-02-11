@@ -59,8 +59,8 @@ class Segment:
                 lanes.append(Lane(left=l1, right=l2))
 
         for lane in lanes:
-            simlane = lane.get_bnglane(ratio)
-            bnglanes.append(simlane)
+            bng_lane = lane.get_bnglane(ratio)
+            bnglanes.append(bng_lane)
         self.bnglanes = bnglanes
 
         if debug:

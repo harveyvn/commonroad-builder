@@ -11,7 +11,7 @@ class Stripe:
         return str(self.__class__) + ": " + str(self.__dict__)
 
 
-class SimLane:
+class BngLane:
     def __init__(self, left: Stripe, right: Stripe, mid: List[Tuple], width: float):
         self.left = left
         self.right = right

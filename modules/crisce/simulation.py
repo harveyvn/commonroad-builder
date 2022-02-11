@@ -78,11 +78,24 @@ class Simulation:
         for segment in segments:
             for i, lane in enumerate(segment.simlanes):
                 if i == 0:
-                    pass
+                    left_marking = Road('line_white', rid=f'{left_ids[i]}_left_white')
+                    left_marking.nodes.extend(lane.left.points)
+                    scenario.add_road(left_marking)
                 elif i == len(segment.simlanes) - 1:
-                    pass
+                    right_marking = Road('line_white', rid=f'{right_ids[i]}_right_white')
+                    right_marking.nodes.extend(lane.right.points)
+                    scenario.add_road(right_marking)
                 else:
-                    pass
+                    left_marking = Road('line_white', rid=f'{left_ids[i]}_left_white')
+                    left_marking.nodes.extend(lane.left.points)
+                    scenario.add_road(left_marking)
+                    right_marking = Road('line_white', rid=f'{right_ids[i]}_right_white')
+                    right_marking.nodes.extend(lane.right.points)
+                    scenario.add_road(right_marking)
+
+                road = Road('track_editor_C_center', rid=mid_ids[i], interpolate=True)
+                road.nodes.extend(lane.mid)
+                scenario.add_road(road)
 
         for v in vehicles:
             color = v.color

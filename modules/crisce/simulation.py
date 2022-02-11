@@ -74,28 +74,32 @@ class Simulation:
         mid_ids = [f'main_road_{i}' for i in range(0, 100)]
         left_ids = [f'left_road_{i}' for i in range(0, 100)]
         right_ids = [f'right_road_{i}' for i in range(0, 100)]
-        id = 0
         for segment in segments:
             for i, lane in enumerate(segment.simlanes):
+                main_road = Road('road_asphalt_2lane', rid=mid_ids[i])
+                main_road.nodes.extend(lane.mid)
+                scenario.add_road(main_road)
                 if i == 0:
-                    left_marking = Road('line_white', rid=f'{left_ids[i]}_left_white')
+                    left_marking = Road('line_white', rid=f'{left_ids[i]}')
                     left_marking.nodes.extend(lane.left.points)
                     scenario.add_road(left_marking)
                 elif i == len(segment.simlanes) - 1:
-                    right_marking = Road('line_white', rid=f'{right_ids[i]}_right_white')
-                    right_marking.nodes.extend(lane.right.points)
-                    scenario.add_road(right_marking)
-                else:
-                    left_marking = Road('line_white', rid=f'{left_ids[i]}_left_white')
-                    left_marking.nodes.extend(lane.left.points)
-                    scenario.add_road(left_marking)
-                    right_marking = Road('line_white', rid=f'{right_ids[i]}_right_white')
+                    right_marking = Road('line_white', rid=f'{right_ids[i]}')
                     right_marking.nodes.extend(lane.right.points)
                     scenario.add_road(right_marking)
 
-                road = Road('track_editor_C_center', rid=mid_ids[i], interpolate=True)
-                road.nodes.extend(lane.mid)
-                scenario.add_road(road)
+                if len(segment.simlanes) > 2:
+                        left_marking = Road('line_yellow', rid=f'{left_ids[i]}')
+                        left_marking.nodes.extend(lane.left.points)
+                        scenario.add_road(left_marking)
+                        right_marking = Road('line_yellow', rid=f'{right_ids[i]}')
+                        right_marking.nodes.extend(lane.right.points)
+                        scenario.add_road(right_marking)
+                else:
+                    if i == 0:
+                        right_marking = Road('line_yellow', rid=f'{right_ids[i]}')
+                        right_marking.nodes.extend(lane.right.points)
+                        scenario.add_road(right_marking)
 
         for v in vehicles:
             color = v.color
@@ -628,7 +632,7 @@ class Simulation:
                 if len(self.road_lanes[i].lane_markings) > 2:
                     internal_lane_markings = self.road_lanes[i].lane_markings.copy()
                     print(len(internal_lane_markings))
-                    for x in range(0, len(internal_lane_markings)-2):
+                    for x in range(0, len(internal_lane_markings) - 2):
                         del self.crash_analysis_log["roads"][f'main_road_{i + 1}_central_{x}']
 
         except Exception as e:
@@ -881,7 +885,7 @@ class Simulation:
 
             #### ---- For Storing  the log in the excel file for data analysis------- ####
             self.log["vehicles"][v_color]["cum_iou"] = (veh_iou / (
-                        len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
+                    len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
             self.log["vehicles"][v_color]["cum_iou_error"] = 100 - self.crash_analysis_log["vehicles"][v_color][
                 "cum_iou"]
             self.log["vehicles"][v_color]["displacement_error"] = displacement / len(

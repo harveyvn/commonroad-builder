@@ -226,7 +226,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
             lines = analyzer.categorize_laneline(lane_dict)
-            # analyzer.visualize()
+            analyzer.visualize()
             segment.generate_simlanes(lines, a_ratio)
 
         print("==================================================")
@@ -294,12 +294,11 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             print(vh.color)
             print(vh.script)
 
-        exit()
-
         simulation.bng, simulation.scenario = simulation.setupBeamngSimulation(sketch_id, beamng_port=64257,
                                                                                beamng_home=beamng_home,
                                                                                beamng_user=beamng_user,
-                                                                               vehicles=vhs)
+                                                                               vehicles=vhs,
+                                                                               segments=segments)
         # Make sure user sees the crash from the above
         simulation.aerialViewCamera()
 

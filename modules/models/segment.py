@@ -23,15 +23,21 @@ class Segment:
         self.angle: float = 0
         self.is_horizontal = False
         self.is_vertical = False
-        self.simlanes: List[SimLane] = None
+        self.lanes: List[Lane] = []
+        self.simlanes: List[SimLane] = []
 
-    def generate_simlanes(self, lines: List[Line], ratio: float, debug: bool = False):
-        lanes, simlanes = [], []
+    def generate_lanes(self, lines: List[Line]):
+        lanes = []
         for l1, l2 in pairs(lines):
             lanes.append(Lane(left=l1, right=l2))
+        self.lanes = lanes
+        return self.lanes
 
-        for lane in lanes:
-            simlanes.append(lane.get_simlane(ratio))
+    def generate_simlanes(self, ratio: float, debug: bool = False):
+        simlanes = []
+        for lane in self.lanes:
+            simlane = lane.get_simlane_flip(ratio) if self.angle == -90 else lane.get_simlane(ratio)
+            simlanes.append(simlane)
 
         if debug:
             plt.clf()

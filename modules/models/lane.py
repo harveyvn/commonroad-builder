@@ -1,6 +1,6 @@
 from typing import List, Tuple
 from .line import Line
-from .lib import generate
+from .lib import generate, flip
 from modules.common import midpoint
 from shapely.geometry import LineString, Point
 
@@ -22,6 +22,14 @@ class Lane:
         ls = generate(self.left.ls, ratio, 0.1)
         rs = generate(self.right.ls, ratio, 0.1)
         ms = generate(self.mid.ls, ratio, ratio * self.width)
+        return SimLane(left=Stripe(ls, self.left.num, self.left.pattern),
+                       right=Stripe(rs, self.right.num, self.right.pattern),
+                       mid=ms, width=ratio * self.width)
+
+    def get_simlane_flip(self, ratio):
+        ls = generate(flip(self.left.ls), ratio, 0.1)
+        rs = generate(flip(self.right.ls), ratio, 0.1)
+        ms = generate(flip(self.mid.ls), ratio, ratio * self.width)
         return SimLane(left=Stripe(ls, self.left.num, self.left.pattern),
                        right=Stripe(rs, self.right.num, self.right.pattern),
                        mid=ms, width=ratio * self.width)

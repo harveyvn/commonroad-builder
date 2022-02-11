@@ -8,9 +8,11 @@ import math
 import cv2
 from shapely.geometry import MultiLineString, Polygon
 import pandas as pd
+from modules.models import Segment
+from typing import List
 
 
-class Simulation():
+class Simulation:
 
     def __init__(self, vehicles, roads, lane_nodes, kinematics, time_efficiency, output_folder,
                  car_length, car_width, car_length_sim, sketch_type_external, height, width,
@@ -39,7 +41,7 @@ class Simulation():
         self.sampling_frequency = sampling_frequency
         self.road_lanes = road_lanes
 
-    def setupBeamngSimulation(self, file, beamng_port, beamng_home, beamng_user, vehicles):
+    def setupBeamngSimulation(self, file, beamng_port, beamng_home, beamng_user, vehicles, segments: List[Segment]):
         t0 = time.time()
 
         # TODO Use GLOBAL Constants!
@@ -63,11 +65,24 @@ class Simulation():
         cam = Camera(cam_pos, cam_dir, 90, (2048, 2048), near_far=(1, 4000), colour=True)
         scenario.add_camera(cam, 'cam')
 
-        road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
-        for i, lane in enumerate(self.lane_nodes):
-            road = Road('track_editor_C_center', rid=road_id[i], interpolate=True)
-            road.nodes.extend(self.lane_nodes[i])
-            scenario.add_road(road)
+        # road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
+        # for i, lane in enumerate(self.lane_nodes):
+        #     road = Road('track_editor_C_center', rid=road_id[i], interpolate=True)
+        #     road.nodes.extend(self.lane_nodes[i])
+        #     scenario.add_road(road)
+
+        mid_ids = [f'main_road_{i}' for i in range(0, 100)]
+        left_ids = [f'left_road_{i}' for i in range(0, 100)]
+        right_ids = [f'right_road_{i}' for i in range(0, 100)]
+        id = 0
+        for segment in segments:
+            for i, lane in enumerate(segment.simlanes):
+                if i == 0:
+                    pass
+                elif i == len(segment.simlanes) - 1:
+                    pass
+                else:
+                    pass
 
         for v in vehicles:
             color = v.color
@@ -592,6 +607,20 @@ class Simulation():
         t0 = time.time()
         road_geometry = 0
         # number_of_roads = 0
+
+        try:
+            for i in range(0, len(self.lane_nodes)):
+                del self.crash_analysis_log["roads"][f'main_road_{i + 1}_right_white']
+                del self.crash_analysis_log["roads"][f'main_road_{i + 1}_left_white']
+                if len(self.road_lanes[i].lane_markings) > 2:
+                    internal_lane_markings = self.road_lanes[i].lane_markings.copy()
+                    print(len(internal_lane_markings))
+                    for x in range(0, len(internal_lane_markings)-2):
+                        del self.crash_analysis_log["roads"][f'main_road_{i + 1}_central_{x}']
+
+        except Exception as e:
+            print(f'Exception: {e}')
+
         for i, road_name in enumerate(self.crash_analysis_log["roads"]):
             sim_road_width = self.crash_analysis_log["roads"][road_name]["simulation_road_width"]
             sim_road_length = self.crash_analysis_log["roads"][road_name]["simulation_road_length"]

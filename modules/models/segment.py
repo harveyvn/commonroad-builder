@@ -48,8 +48,9 @@ class Segment:
                 target = lines[i]
                 points = np.array(list(target.ls.coords))
                 flip = LineString(points.dot([[1, 0], [0, -1]]))
-                point = list(lines[len(lines) - 1 - i].ls.coords)[-1]
-                move = translate_ls_to_new_origin(flip, Point(point))
+                first = Point(list(lines[i].ls.coords)[0])
+                last = Point(list(lines[len(lines) - 1 - i].ls.coords)[0])
+                move = translate_ls_to_new_origin(flip, Point(first.x, last.y))
                 reversed_lines[i].ls = move
             lines = reversed_lines
 

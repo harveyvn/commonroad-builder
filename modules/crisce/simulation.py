@@ -1,6 +1,4 @@
 import time
-from typing import List
-
 from beamngpy import BeamNGpy, Scenario, Road, Vehicle
 from beamngpy.sensors import Electrics, Camera, Damage, Timer
 import matplotlib.pyplot as plt
@@ -10,14 +8,11 @@ import math
 import cv2
 from shapely.geometry import MultiLineString, Polygon
 import pandas as pd
-from shapely.geometry import LineString
-import modules.crisce.common as common
-from modules.models import LaneMarking
-from modules.constant import CONST
-from math import floor, ceil
+from modules.models import Segment
+from typing import List
 
 
-class Simulation():
+class Simulation:
 
     def __init__(self, vehicles, roads, lane_nodes, kinematics, time_efficiency, output_folder,
                  car_length, car_width, car_length_sim, sketch_type_external, height, width,
@@ -46,7 +41,7 @@ class Simulation():
         self.sampling_frequency = sampling_frequency
         self.road_lanes = road_lanes
 
-    def setupBeamngSimulation(self, file, beamng_port, beamng_home, beamng_user):
+    def setupBeamngSimulation(self, file, beamng_port, beamng_home, beamng_user, vehicles, segments: List[Segment]):
         t0 = time.time()
 
         # TODO Use GLOBAL Constants!
@@ -70,53 +65,62 @@ class Simulation():
         cam = Camera(cam_pos, cam_dir, 90, (2048, 2048), near_far=(1, 4000), colour=True)
         scenario.add_camera(cam, 'cam')
 
-        road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
-        for i, lane in enumerate(self.lane_nodes):
-            left_marking_nodes = common.generate_left_marking(self.lane_nodes[i], self.lane_nodes[i][0][-1]/2)
-            left_marking = Road('line_white', rid=f'{road_id[i]}_left_white')
-            left_marking.nodes.extend(left_marking_nodes)
-            scenario.add_road(left_marking)
+        # road_id = ['main_road_1', 'main_road_2', 'main_road_3', 'main_road_4', 'main_road_5', 'main_road_6']
+        # for i, lane in enumerate(self.lane_nodes):
+        #     road = Road('track_editor_C_center', rid=road_id[i], interpolate=True)
+        #     road.nodes.extend(self.lane_nodes[i])
+        #     scenario.add_road(road)
 
-            right_marking_nodes = common.generate_right_marking(left_marking_nodes, self.lane_nodes[i][0][-1])
-            right_marking = Road('line_white', rid=f'{road_id[i]}_right_white')
-            right_marking.nodes.extend(right_marking_nodes)
-            scenario.add_road(right_marking)
+        def render_road(id, name, points):
+            road = Road(name, rid=id)
+            road.nodes.extend(points)
+            return road
 
-            if len(self.road_lanes[i].lane_markings) > 2:
-                internal_lane_markings: List[LaneMarking] = self.road_lanes[i].lane_markings
-                for idx, il in enumerate(internal_lane_markings[1:-1]):
-                    cm_nodes = common.generate_right_marking(left_marking_nodes, il.ratio * self.lane_nodes[i][0][-1])
-                    road_line = "line_dashed_long"
-                    if il.type == CONST.SINGLE_LINE or il.type == CONST.SINGLE_DASHED_LINE:
-                        road_line = "line_dashed_short"
+        for s, segment in enumerate(segments):
+            for i, lane in enumerate(segment.bnglanes):
+                l_id = f'left_road_{s}_{i}'
+                r_id = f'right_road_{s}_{i}'
+                if len(segment.bnglanes) == 1:
+                    scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
+                    scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
+                elif len(segment.bnglanes) == 2:
+                    if i == 0:
+                        scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
+                        scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
+                    else:
+                        scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
+                else:
+                    if i == 0:
+                        scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
+                    elif i == len(segment.bnglanes) - 1:
+                        scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
+                    else:
+                        scenario.add_road(render_road(l_id, 'line_yellow', lane.left.points))
+                        scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
 
-                    central_marking = Road(road_line, rid=f'{road_id[i]}_central_{idx}')
-                    central_marking.nodes.extend(cm_nodes)
-                    scenario.add_road(central_marking)
+        for s, segment in enumerate(segments):
+            for i, lane in enumerate(segment.bnglanes):
+                m_id = f'main_road_{s}_{i}'
+                scenario.add_road(render_road(m_id, 'road_asphalt_2lane', lane.mid))
 
-            road = Road('road_asphalt_2lane', rid=road_id[i], interpolate=True)
-            road.nodes.extend(self.lane_nodes[i])
-            scenario.add_road(road)
 
-        for vehicle_color in self.vehicles:
-            self.crash_analysis_log["vehicles"][vehicle_color] = dict()
-            script = self.vehicles[vehicle_color]["trajectories"]["script_trajectory"]
-            angle = self.vehicles[vehicle_color]["vehicle_info"]["0"]["angle_of_car"]
-            orig_pos = self.vehicles[vehicle_color]["snapshots"][0]["center_of_car"]
-            x = orig_pos[0] * self.car_length_sim / self.car_length
-            y = distorted_height - (orig_pos[1] * self.car_length_sim / self.car_length)
-            # print("vehicle", vehicle_color, "postition = ", x, y)
 
-            vehicle = Vehicle("{}_vehicle".format(vehicle_color),
+        for v in vehicles:
+            color = v.color
+            pos = v.pos
+            rot = v.rot
+
+            vehicle = Vehicle("{}_vehicle".format(color),
                               model='etk800',
-                              licence="{}_007".format(vehicle_color),
-                              color=str.capitalize(vehicle_color))
-            scenario.add_vehicle(vehicle, pos=(round(x, 1), round(y, 1), 0), rot=(0, 0, -angle - 90), rot_quat=None)
-            # scenario.add_vehicle(vehicle, pos=( round(script[0]["x"], 3), round(script[0]["y"], 3), 0), rot=(0,0, -angle -90) , rot_quat=None)
+                              licence="{}_007".format(color),
+                              color=str.capitalize(color))
+            scenario.add_vehicle(vehicle, pos=pos, rot=rot, rot_quat=None)
             vehicle.attach_sensor('electrics', electrics)
             vehicle.attach_sensor("damage", damage)
             vehicle.attach_sensor("timer", timer)
-            self.crash_analysis_log["vehicles"][vehicle_color]["vehicle"] = vehicle
+
+            self.crash_analysis_log["vehicles"][color] = dict()
+            self.crash_analysis_log["vehicles"][color]["vehicle"] = vehicle
 
         scenario.make(beamng)
 
@@ -345,18 +349,27 @@ class Simulation():
 
         return (x, y, z, w)
 
-    def initiateDrive(self):
-        for vehicle_color in self.vehicles:
-            self.bng.add_debug_line(points=self.vehicles[vehicle_color]["trajectories"]["debug_trajectory"],
-                                    point_colors=self.vehicles[vehicle_color]["trajectories"]["point_colors"],
-                                    spheres=self.vehicles[vehicle_color]["trajectories"]["spheres"],
-                                    sphere_colors=self.vehicles[vehicle_color]["trajectories"]["sphere_colors"],
-                                    cling=True,
-                                    offset=0.1)
+    def initiateDrive(self, vhs):
+        for v in vhs:
+            self.bng.add_debug_line(
+                points=v.debug_script,
+                point_colors=[v.color_code for i in v.debug_script],
+                spheres=v.spheres,
+                sphere_colors=[v.color_code for i in v.spheres],
+                cling=True,
+                offset=0.1
+            )
+        # for vehicle_color in self.vehicles:
+        #     self.bng.add_debug_line(points=self.vehicles[vehicle_color]["trajectories"]["debug_trajectory"],
+        #                             point_colors=self.vehicles[vehicle_color]["trajectories"]["point_colors"],
+        #                             spheres=self.vehicles[vehicle_color]["trajectories"]["spheres"],
+        #                             sphere_colors=self.vehicles[vehicle_color]["trajectories"]["sphere_colors"],
+        #                             cling=True,
+        #                             offset=0.1)
 
         # bng.step(10)
 
-        # """ AI script must have at least 3 nodes """
+        """ AI script must have at least 3 nodes """
 
         vehicle_red = self.crash_analysis_log["vehicles"]["red"]["vehicle"]
         vehicle_blue = self.crash_analysis_log["vehicles"]["blue"]["vehicle"]
@@ -378,11 +391,17 @@ class Simulation():
         t0 = time.time()
         if (len(self.vehicles["red"]["snapshots"]) > 1):
             vehicle_red.ai_set_mode('manual')
-            vehicle_red.ai_set_script(self.vehicles["red"]["trajectories"]["script_trajectory"], cling=False)
+            # vehicle_red.ai_set_script(self.vehicles["red"]["trajectories"]["script_trajectory"], cling=False)
+            for v in vhs:
+                if v.color == "red":
+                    vehicle_red.ai_set_script(v.script, cling=False)
 
         if (len(self.vehicles["blue"]["snapshots"]) > 1):
             vehicle_blue.ai_set_mode('manual')
-            vehicle_blue.ai_set_script(self.vehicles["blue"]["trajectories"]["script_trajectory"], cling=False)
+            # vehicle_blue.ai_set_script(self.vehicles["blue"]["trajectories"]["script_trajectory"], cling=False)
+            for v in vhs:
+                if v.color == "blue":
+                    vehicle_red.ai_set_script(v.script, cling=False)
 
         self.bng.set_steps_per_second(160)
         self.bng.pause()
@@ -617,7 +636,7 @@ class Simulation():
                 if len(self.road_lanes[i].lane_markings) > 2:
                     internal_lane_markings = self.road_lanes[i].lane_markings.copy()
                     print(len(internal_lane_markings))
-                    for x in range(0, len(internal_lane_markings)-2):
+                    for x in range(0, len(internal_lane_markings) - 2):
                         del self.crash_analysis_log["roads"][f'main_road_{i + 1}_central_{x}']
 
         except Exception as e:
@@ -870,7 +889,7 @@ class Simulation():
 
             #### ---- For Storing  the log in the excel file for data analysis------- ####
             self.log["vehicles"][v_color]["cum_iou"] = (veh_iou / (
-                        len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
+                    len(self.vehicles[v_color]["snapshots"]) * 100)) * 100
             self.log["vehicles"][v_color]["cum_iou_error"] = 100 - self.crash_analysis_log["vehicles"][v_color][
                 "cum_iou"]
             self.log["vehicles"][v_color]["displacement_error"] = displacement / len(

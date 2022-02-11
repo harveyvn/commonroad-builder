@@ -20,6 +20,8 @@ class Constant:
         self.LINUX = "Linux"
         self.DARWIN = "Darwin"
         self.WINDOWS = "Windows"
+        self.RED_RGBA = "1 0 0"
+        self.BLUE_RGBA = "0 0 1"
         self.CRISCE_IMPACT_MODEL = {
             "front_left": [
                 "headlight_L", "hood", "fender_L", "bumper_F", "bumperbar_F", "suspension_F", "body_wagon"

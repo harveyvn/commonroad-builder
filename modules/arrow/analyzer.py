@@ -31,4 +31,4 @@ class ArrowAnalyzer:
         pair = ArrowLib.find_shortest_pair(contours=arrow_contours, debug=False, img=img)
         assert cnt_tri in pair
 
-        ArrowLib.find_deg_of(pair[0], pair[1], debug=True)
+        return ArrowLib.find_deg_of(pair[0], pair[1], debug=False)

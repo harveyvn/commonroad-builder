@@ -5,6 +5,7 @@ import shapely.ops
 import numpy.polynomial.polynomial as poly
 import numpy as np
 from typing import List
+import matplotlib.pyplot as plt
 
 
 def reverse_geom(geom):
@@ -90,7 +91,7 @@ def angle(lineA, lineB):
     return ang_deg
 
 
-def midpoint(p1, p2):
+def midpoint(p1: Point, p2: Point):
     return Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
 
 
@@ -160,4 +161,29 @@ def interpolate(coords: List, axis_idx: int, image: np.array):
     if axis_idx == 0:
         print("From Parallel interpolate")
         exit()
+    return coords
+
+
+def smooth_line(coords: List, debug: bool = False):
+    xs = [p[0] for p in coords]
+    ys = [p[1] for p in coords]
+    coefs = poly.polyfit(xs, ys, 2)
+
+    first, last = xs[0], xs[-1]
+    poly_xs = np.arange(first, last, abs(last - first) / 30).tolist()
+    poly_ys = poly.polyval(poly_xs, coefs)
+    coords = [(x, y) for x, y in zip(poly_xs, poly_ys)]
+
+    if debug:
+        fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+        ax[0].plot(xs, ys, '.', label="Origin")
+        ax[0].plot(poly_xs, poly_ys, '-', label="Interpolate")
+        ax[0].set_aspect("auto")
+        ax[0].legend(loc='lower right')
+        ax[1].plot(xs, ys, '.', label="Origin")
+        ax[1].plot(poly_xs, poly_ys, '-', label="Interpolate")
+        ax[1].set_aspect("equal")
+        plt.show()
+        exit()
+
     return coords

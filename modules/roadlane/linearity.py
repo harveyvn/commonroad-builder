@@ -3,6 +3,7 @@ from .laneline import Laneline
 from math import ceil
 from modules.models import Segment
 from modules.constant import CONST
+from modules.common import order_points
 
 
 class LinearLane(RoadLane):
@@ -15,7 +16,7 @@ class LinearLane(RoadLane):
 
         # Define the polygon covering the road with the midline linestring, left & right boundaries
         buffer = 0.00005
-        laneline = Laneline(coords=coords, width=lane_width / 2)
+        laneline = Laneline(coords=order_points(coords), width=lane_width / 2)
         mid_line = laneline.get_linestring()
         right_boundary = mid_line.parallel_offset(distance=ceil(laneline.width + buffer), side="right", join_style=2)
         left_boundary = mid_line.parallel_offset(distance=ceil(laneline.width + buffer), side="left", join_style=2)

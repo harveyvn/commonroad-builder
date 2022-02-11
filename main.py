@@ -2,7 +2,7 @@ import os
 import sys
 import cv2
 import json
-
+import copy
 import click
 import platform
 import numpy as np
@@ -15,10 +15,11 @@ from modules.crisce.pre_processing import Pre_Processing
 from modules.crisce.roads import Roads
 from modules.crisce.car import Car
 from modules.crisce.kinematics import Kinematics
-from modules.crisce import extract_data_from_scenario
+from modules.crisce.common import visualize_crisce_sketch, visualize_crisce_simlanes
+from modules.crisce import extract_data_from_scenario, Vehicle
 from modules.roadlane import categorize_roadlane, refine_roadlanes
 from modules.analyzer import Analyzer
-from modules.models import Map
+from modules.arrow import ArrowAnalyzer
 from modules.constant import CONST
 
 if platform.system() == CONST.WINDOWS:
@@ -81,9 +82,9 @@ def cli(ctx, log_to, debug):
               help="Name of the dataset the accident comes from.")
 @click.option('--output-to', required=False, type=click.Path(exists=False), multiple=False,
               help="Folder to store outputs. It will created if not present. If omitted we use the accident folder.")
-@click.option('--beamng-home', required=True, type=click.Path(exists=True), multiple=False,
+@click.option('--beamng-home', required=False, type=click.Path(exists=True), multiple=False,
               help="Home folder of the BeamNG.research simulator")
-@click.option('--beamng-user', required=True, type=click.Path(exists=True), multiple=False,
+@click.option('--beamng-user', required=False, type=click.Path(exists=True), multiple=False,
               help="User folder of the BeamNG.research simulator")
 #
 # TODO This is not working right now, I suspect we need the CSV in any case !
@@ -168,12 +169,13 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         height, width = car.getImageDimensions()
 
         # Step 2: Extract roads' information. Note: We need the size of the vehicles to rescale the roads
-        roads, lane_nodes, road_lanes = roads.extractRoadInformation(image_path=road_image_path,
-                                                                     time_efficiency=time_efficiency,
-                                                                     show_image=show_image,
-                                                                     output_folder=output_folder, car_length=car_length,
-                                                                     car_width=car_width,
-                                                                     car_length_sim=CONST.CAR_LENGTH_SIM)
+        roads, lane_nodes, road_lanes, a_ratio = roads.extractRoadInformation(image_path=road_image_path,
+                                                                              time_efficiency=time_efficiency,
+                                                                              show_image=show_image,
+                                                                              output_folder=output_folder,
+                                                                              car_length=car_length,
+                                                                              car_width=car_width,
+                                                                              car_length_sim=CONST.CAR_LENGTH_SIM)
 
         # Step 3: Plan the trajectories
         # TODO Add parameter to decide whih planner to use
@@ -183,7 +185,39 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                             output_folder=output_folder,
                                                                             show_image=show_image)
 
-        road_lanes = generate_lane_markings(road_lanes)
+        if road_lanes["road_type"] > 0:
+            road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
+        lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
+        (image, baselines, segments) = lane_factory.run()
+        for segment in segments:
+            analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
+            lane_dict = analyzer.search_laneline()
+            lines = analyzer.categorize_laneline(lane_dict)
+            analyzer.visualize()
+            segment.generate_lanes(lines)
+            segment.get_bnglanes(a_ratio)
+
+        print("==================================================")
+        print("==================================================")
+        plt.clf()
+        fig, ax = plt.subplots(1, 3, figsize=(25, 8))
+        ax[0] = visualize_crisce_sketch(ax[0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
+        ax[0].title.set_text("CRISCE Road Sketch")
+        ax[0].set_aspect("equal")
+
+        ax[1] = visualize_crisce_simlanes(ax[1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
+        ax[1].title.set_text("CRISCE Road Simulation")
+        ax[1].set_aspect("equal")
+
+        for segment in segments:
+            ax[2] = segment.visualize(ax[2])
+        ax[2].set_aspect("equal")
+        ax[2].title.set_text("CRISCE Road Simulation with Lane Marking")
+        plt.show()
+        print("==================================================")
+        print("==================================================")
+
+        exit()
 
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")
@@ -206,9 +240,35 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         sketch_id = os.path.basename(os.path.dirname(sketch_image_path))
         logger.info(f"Execution of sketch {sketch_id} Starts")
 
+        vhs = []
+        for color in vehicles:
+            color_code = CONST.RED_RGBA
+            if color == "blue":
+                color_code = CONST.BLUE_RGBA
+            vehicle = vehicles[color]
+            angle = vehicle["vehicle_info"]["0"]["angle_of_car"]
+            orig_pos = vehicle["snapshots"][0]["center_of_car"]
+            distorted_height = height * CONST.CAR_LENGTH_SIM / car_length
+            x = orig_pos[0] * CONST.CAR_LENGTH_SIM / car_length
+            y = distorted_height - (orig_pos[1] * CONST.CAR_LENGTH_SIM / car_length)
+            vh = Vehicle(
+                script=vehicle["trajectories"]["script_trajectory"],
+                pos=(round(x, 1), round(y, 1), 0),
+                rot=(0, 0, -angle - 90),
+                color=color,
+                color_code=color_code,
+                debug_script=vehicle["trajectories"]["debug_trajectory"],
+                spheres=vehicle["trajectories"]["spheres"]
+            )
+            vhs.append(vh)
+            print(vh.color)
+            print(vh.script)
+
         simulation.bng, simulation.scenario = simulation.setupBeamngSimulation(sketch_id, beamng_port=64257,
                                                                                beamng_home=beamng_home,
-                                                                               beamng_user=beamng_user)
+                                                                               beamng_user=beamng_user,
+                                                                               vehicles=vhs,
+                                                                               segments=segments)
         # Make sure user sees the crash from the above
         simulation.aerialViewCamera()
 
@@ -231,7 +291,8 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
 
         # This also requires the road, so cannot be called before the end of the simulation
         simulation.plotSimulationCrashSketch()
-        simulation.initiateDrive()
+        simulation.initiateDrive(vhs)
+        exit()
 
         logger.info("Execution Ends")
 
@@ -342,10 +403,6 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
 
         with open(os.path.join(output_folder, "summary.json"), 'w') as fp:
             json.dump(log, fp, indent=1)
-
-
-
-
     finally:
         pass
 
@@ -363,47 +420,33 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from modules.arrow import ArrowAnalyzer
-
-    kernel = np.ones((2, 1))
-    img = cv2.imread("samples/road5a.jpeg")
-    ArrowAnalyzer(kernel=kernel, img=img).run()
-
+    cli()
     exit()
-
-    # straights = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692]
-    # for name in [102804]:
-    #     roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/single/{name}')
-    #     lane_factory = categorize_roadlane(road_lanes)
-    #     (image, baselines, segments) = lane_factory.run()
-    #
-    #     for segment in segments:
-    #         analyzer = Analyzer(image=image, lanelines=baselines, road=segment)
-    #         lane_dict = analyzer.search_laneline()
-    #         analyzer.categorize_laneline(lane_dict)
-    #         analyzer.visualize()
-    #         segment.generate_lanes()
-    #
-    #     network = Map(segments, image)
-    #     network.draw(True)
-    #     network.generate_road_with_ratio(lane_nodes, name)
-
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
-    for s in [128719]:
-        roads, lane_nodes, road_lanes = extract_data_from_scenario(f'CIREN/parallel/{s}')
+    for s in [135859]:
+        path = f'CIREN/single/{s}'
+
+        # Extract arrow direction
+        kernel = np.ones((2, 2))
+        img = cv2.imread(f'{path}/road.jpeg')
+        diff, cm = ArrowAnalyzer(kernel=kernel, img=img).run()
+        print(diff, cm)
+
+        # Extract road lanes
+        roads, lane_nodes, road_lanes, ratio = extract_data_from_scenario(path)
 
         if road_lanes["road_type"] > 0:
             road_lanes = refine_roadlanes(road_lanes)
 
         lane_factory = categorize_roadlane(road_lanes)
         (image, baselines, segments) = lane_factory.run()
+
+        lines = []
         for segment in segments:
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
-            analyzer.categorize_laneline(lane_dict)
-            analyzer.visualize()
-            # segment.generate_lanes()
-
-    # cli()
+            lines = analyzer.categorize_laneline(lane_dict)
+            # analyzer.visualize()
+            segment.generate_lanes(lines)
+            segment.get_bnglanes(0.4, True)

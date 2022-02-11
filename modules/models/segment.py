@@ -1,12 +1,14 @@
+import copy
+import numpy as np
 import matplotlib.pyplot as plt
 from .lane import Lane
-from .bnglane import SimLane, Stripe
 from .line import Line
 from .lib import render_stripe
+from .bnglane import BngLane, Stripe
 from typing import List
 from descartes import PolygonPatch
-from modules.common import pairs
-from shapely.geometry import Polygon, LineString
+from shapely.geometry import Polygon, LineString, Point
+from modules.common import pairs, translate_ls_to_new_origin
 
 
 class Segment:
@@ -25,20 +27,40 @@ class Segment:
         self.is_horizontal = False
         self.is_vertical = False
         self.lanes: List[Lane] = []
-        self.simlanes: List[SimLane] = []
+        self.bnglanes: List[BngLane] = []
+        self.lines: List[Line] = []
 
     def generate_lanes(self, lines: List[Line]):
+        self.lines = lines
         lanes = []
-        for l1, l2 in pairs(lines):
+        for l1, l2 in pairs(self.lines):
             lanes.append(Lane(left=l1, right=l2))
         self.lanes = lanes
         return self.lanes
 
-    def generate_simlanes(self, ratio: float, debug: bool = False):
-        simlanes = []
-        for lane in self.lanes:
-            simlane = lane.get_simlane(ratio) if self.angle == -90 else lane.get_simlane(ratio)
-            simlanes.append(simlane)
+    def get_bnglanes(self, ratio: float, debug: bool = False):
+        lines = copy.deepcopy(self.lines)
+        reversed_lines = copy.deepcopy(self.lines)
+        lanes, bnglanes = self.lanes.copy(), []
+
+        if self.angle == -90:
+            for i, line in enumerate(lines):
+                target = lines[i]
+                points = np.array(list(target.ls.coords))
+                flip = LineString(points.dot([[1, 0], [0, -1]]))
+                point = list(lines[len(lines) - 1 - i].ls.coords)[-1]
+                move = translate_ls_to_new_origin(flip, Point(point))
+                reversed_lines[i].ls = move
+            lines = reversed_lines
+
+            lanes = []
+            for l1, l2 in pairs(lines):
+                lanes.append(Lane(left=l1, right=l2))
+
+        for lane in lanes:
+            simlane = lane.get_bnglane(ratio)
+            bnglanes.append(simlane)
+        self.bnglanes = bnglanes
 
         if debug:
             plt.clf()
@@ -48,11 +70,9 @@ class Segment:
             plt.show()
             exit()
 
-        self.simlanes = simlanes
-
     def visualize(self, ax):
-        for i, sl in enumerate(self.simlanes):
-            sl: SimLane = sl
+        for i, sl in enumerate(self.bnglanes):
+            sl: BngLane = sl
             left: Stripe = sl.left
             right: Stripe = sl.right
             poly = LineString([(t[0], t[1]) for t in sl.mid]).buffer(sl.width / 2, cap_style=2, join_style=2)
@@ -60,7 +80,7 @@ class Segment:
             ax.add_patch(patch)
             if i == 0:
                 render_stripe(plt, left)
-            elif i == len(self.simlanes) - 1:
+            elif i == len(self.bnglanes) - 1:
                 render_stripe(plt, right)
             else:
                 render_stripe(plt, left)

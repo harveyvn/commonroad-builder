@@ -195,7 +195,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             lines = analyzer.categorize_laneline(lane_dict)
             analyzer.visualize()
             segment.generate_lanes(lines)
-            segment.generate_simlanes(a_ratio)
+            segment.get_bnglanes(a_ratio)
 
         print("==================================================")
         print("==================================================")
@@ -424,7 +424,7 @@ if __name__ == '__main__':
     exit()
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
-    for s in [108812]:
+    for s in [135859]:
         path = f'CIREN/single/{s}'
 
         # Extract arrow direction
@@ -447,5 +447,6 @@ if __name__ == '__main__':
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
             lines = analyzer.categorize_laneline(lane_dict)
-            analyzer.visualize()
+            # analyzer.visualize()
             segment.generate_lanes(lines)
+            segment.get_bnglanes(0.4, True)

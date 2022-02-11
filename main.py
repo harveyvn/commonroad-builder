@@ -2,7 +2,7 @@ import os
 import sys
 import cv2
 import json
-
+import copy
 import click
 import platform
 import numpy as np
@@ -185,49 +185,17 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                             output_folder=output_folder,
                                                                             show_image=show_image)
 
-        print("==================================================")
-        print("==================================================")
-        from shapely.geometry import LineString
-        from descartes import PolygonPatch
-        print(a_ratio)
-        print("=============\n")
-        for k, v in roads.items():
-            print(k)
-            print(v)
-            print('\n')
-
-        print(len(roads["small_lane_midpoints"][0]))
-        print(len(roads["simulation_lane_midpoints"][0]))
-
-        # plt.clf()
-        # fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-        # ax = visualize_crisce_sketch(ax, roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
-        # ax.title.set_text("Road Sketch")
-        # plt.show()
-
-        # plt.clf()
-        # fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-        # ax = visualize_crisce_simlanes(ax, roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
-        # ax.title.set_text("Road CRISCE")
-        # plt.show()
-        print("\n=============")
-        print("Road Beamng")
-        for l in lane_nodes:
-            print(l)
-        print("==================================================")
-
-
         if road_lanes["road_type"] > 0:
-            road_lanes = refine_roadlanes(road_lanes)
-
-        lane_factory = categorize_roadlane(road_lanes)
+            road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
+        lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
         (image, baselines, segments) = lane_factory.run()
         for segment in segments:
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
             lines = analyzer.categorize_laneline(lane_dict)
             analyzer.visualize()
-            segment.generate_simlanes(lines, a_ratio)
+            segment.generate_lanes(lines)
+            segment.generate_simlanes(a_ratio)
 
         print("==================================================")
         print("==================================================")
@@ -235,19 +203,21 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         fig, ax = plt.subplots(1, 3, figsize=(25, 8))
         ax[0] = visualize_crisce_sketch(ax[0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
         ax[0].title.set_text("CRISCE Road Sketch")
-        ax[0].set_aspect('auto')
+        ax[0].set_aspect("equal")
 
         ax[1] = visualize_crisce_simlanes(ax[1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
         ax[1].title.set_text("CRISCE Road Simulation")
-        ax[1].set_aspect('auto')
+        ax[1].set_aspect("equal")
 
         for segment in segments:
             ax[2] = segment.visualize(ax[2])
-        ax[2].set_aspect('auto')
+        ax[2].set_aspect("equal")
         ax[2].title.set_text("CRISCE Road Simulation with Lane Marking")
         plt.show()
         print("==================================================")
         print("==================================================")
+
+        exit()
 
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")
@@ -454,7 +424,7 @@ if __name__ == '__main__':
     exit()
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
-    for s in [142845]:
+    for s in [108812]:
         path = f'CIREN/single/{s}'
 
         # Extract arrow direction
@@ -464,16 +434,18 @@ if __name__ == '__main__':
         print(diff, cm)
 
         # Extract road lanes
-        roads, lane_nodes, road_lanes = extract_data_from_scenario(path)
+        roads, lane_nodes, road_lanes, ratio = extract_data_from_scenario(path)
 
         if road_lanes["road_type"] > 0:
             road_lanes = refine_roadlanes(road_lanes)
 
         lane_factory = categorize_roadlane(road_lanes)
         (image, baselines, segments) = lane_factory.run()
+
+        lines = []
         for segment in segments:
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
-            analyzer.categorize_laneline(lane_dict)
+            lines = analyzer.categorize_laneline(lane_dict)
             analyzer.visualize()
-            # segment.generate_lanes()
+            segment.generate_lanes(lines)

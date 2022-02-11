@@ -77,15 +77,13 @@ class Simulation:
             return road
 
         for s, segment in enumerate(segments):
-            for i, lane in enumerate(segment.simlanes):
-                m_id = f'main_road_{s}_{i}'
+            for i, lane in enumerate(segment.bnglanes):
                 l_id = f'left_road_{s}_{i}'
                 r_id = f'right_road_{s}_{i}'
-                scenario.add_road(render_road(m_id, 'road_asphalt_2lane', lane.mid))
-                if len(segment.simlanes) == 1:
+                if len(segment.bnglanes) == 1:
                     scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
                     scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
-                elif len(segment.simlanes) == 2:
+                elif len(segment.bnglanes) == 2:
                     if i == 0:
                         scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
                         scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
@@ -94,11 +92,16 @@ class Simulation:
                 else:
                     if i == 0:
                         scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
-                    elif i == len(segment.simlanes) - 1:
+                    elif i == len(segment.bnglanes) - 1:
                         scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
                     else:
                         scenario.add_road(render_road(l_id, 'line_yellow', lane.left.points))
                         scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
+
+        for s, segment in enumerate(segments):
+            for i, lane in enumerate(segment.bnglanes):
+                m_id = f'main_road_{s}_{i}'
+                scenario.add_road(render_road(m_id, 'road_asphalt_2lane', lane.mid))
 
 
 

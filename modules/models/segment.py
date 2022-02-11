@@ -42,7 +42,7 @@ class Segment:
         if debug:
             plt.clf()
             fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-            ax = self.visualize(ax, simlanes)
+            ax = self.visualize(ax)
             ax.title.set_text("Road new CRISCE")
             plt.show()
             exit()

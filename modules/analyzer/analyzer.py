@@ -158,6 +158,7 @@ class Analyzer:
         # Rotate the baseline by certain degree following the image rotation
         self.rotated_ls = affinity.rotate(self.segment.mid_line, -difference, (0, 0))
         self.angle = -difference
+        self.segment.angle = -difference
 
         # Find the starting valid x, so that the window line will not be out of range e.g. oor
         first_x, oor_lines = self.del_oor_lines()

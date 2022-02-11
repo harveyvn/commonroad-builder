@@ -298,8 +298,7 @@ def extract_data_from_scenario(dir_path, dataset_name=None, output_to=None):
 
 def visualize_crisce_sketch(ax, width, points):
     road_width = width
-    road_poly = LineString([(t[0], t[1]) for t in points]).buffer(road_width / 2,
-                                                                                         cap_style=2, join_style=2)
+    road_poly = LineString([(t[0], t[1]) for t in points]).buffer(road_width / 2, cap_style=2, join_style=2)
     road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
     ax.add_patch(road_patch)
     xs = [point[0] for point in points]
@@ -312,9 +311,7 @@ def visualize_crisce_sketch(ax, width, points):
 def visualize_crisce_simlanes(ax, widths, points_list):
     for i, item in enumerate(widths):
         road_width = widths[i]
-        road_poly = LineString([(t[0], t[1]) for t in points_list[i]]).buffer(road_width / 2,
-                                                                                                     cap_style=2,
-                                                                                                     join_style=2)
+        road_poly = LineString([(t[0], t[1]) for t in points_list[i]]).buffer(road_width / 2, cap_style=2, join_style=2)
         road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
         ax.add_patch(road_patch)
         xs = [point[0] for point in points_list[i]]

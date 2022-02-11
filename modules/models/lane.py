@@ -1,5 +1,5 @@
-from typing import List, Tuple
 from .line import Line
+from .bnglane import SimLane, Stripe
 from .lib import generate, flip
 from modules.common import midpoint
 from shapely.geometry import LineString, Point
@@ -27,33 +27,12 @@ class Lane:
                        mid=ms, width=ratio * self.width)
 
     def get_simlane_flip(self, ratio):
-        ls = generate(flip(self.left.ls), ratio, 0.1)
-        rs = generate(flip(self.right.ls), ratio, 0.1)
+        ls = generate(flip(self.right.ls), ratio, 0.1)
+        rs = generate(flip(self.left.ls), ratio, 0.1)
         ms = generate(flip(self.mid.ls), ratio, ratio * self.width)
         return SimLane(left=Stripe(ls, self.left.num, self.left.pattern),
                        right=Stripe(rs, self.right.num, self.right.pattern),
                        mid=ms, width=ratio * self.width)
-
-    def __str__(self):
-        return str(self.__class__) + ": " + str(self.__dict__)
-
-
-class Stripe:
-    def __init__(self, points: List, num: str, pattern: str):
-        self.points = points
-        self.num = num
-        self.pattern = pattern
-
-    def __str__(self):
-        return str(self.__class__) + ": " + str(self.__dict__)
-
-
-class SimLane:
-    def __init__(self, left: Stripe, right: Stripe, mid: List[Tuple], width: float):
-        self.left = left
-        self.right = right
-        self.mid = mid
-        self.width = width
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

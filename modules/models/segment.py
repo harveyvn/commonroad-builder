@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
-from .lane import Lane, SimLane, Stripe
+from .lane import Lane
+from .bnglane import SimLane, Stripe
 from .line import Line
 from .lib import render_stripe
 from typing import List
@@ -36,7 +37,7 @@ class Segment:
     def generate_simlanes(self, ratio: float, debug: bool = False):
         simlanes = []
         for lane in self.lanes:
-            simlane = lane.get_simlane_flip(ratio) if self.angle == -90 else lane.get_simlane(ratio)
+            simlane = lane.get_simlane(ratio) if self.angle == -90 else lane.get_simlane(ratio)
             simlanes.append(simlane)
 
         if debug:

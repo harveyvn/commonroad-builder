@@ -9,7 +9,7 @@ from typing import List
 from shapely import affinity
 from shapely.geometry import Point, LineString
 from modules import slice_when, angle
-from modules.common import translate_ls_to_new_origin, reverse_geom
+from modules.common import translate_ls_to_new_origin, reverse_geom, smooth_line
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
 from modules.models import Segment, Line
@@ -198,7 +198,7 @@ class Analyzer:
         lsts, lstrs = list(), list()
         if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
             peaks = [l.get_peak() for l in lines]
-            left_lsr = affinity.rotate(self.segment.left_boundary, self.angle, (0, 0))
+            left_lsr = affinity.rotate(smooth_line(self.segment.left_boundary), self.angle, (0, 0))
             for i, line in enumerate(lines):
                 distance = line.get_peak() - peaks[0]
                 if i == 0:

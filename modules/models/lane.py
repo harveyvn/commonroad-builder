@@ -18,10 +18,15 @@ class Lane:
             self.width = point_left.distance(point_right)
         self.mid = Line(ls=LineString(mps))
 
-    def get_bnglane(self, ratio):
-        ls = smooth_line(generate(self.left.ls, ratio, 0.1))
-        rs = smooth_line(generate(self.right.ls, ratio, 0.1))
-        ms = smooth_line(generate(self.mid.ls, ratio, ratio * self.width))
+    def get_bnglane(self, ratio, angle):
+        ls = generate(self.left.ls, ratio, 0.1)
+        rs = generate(self.right.ls, ratio, 0.1)
+        ms = generate(self.mid.ls, ratio, ratio * self.width)
+        # Smooth line not applied to vertical roads
+        if (-5 < angle < 5) is False:
+            ls = smooth_line(ls)
+            rs = smooth_line(rs)
+            ms = smooth_line(ms)
         return BngLane(left=Stripe(ls, self.left.num, self.left.pattern),
                        right=Stripe(rs, self.right.num, self.right.pattern),
                        mid=ms, width=ratio * self.width)

@@ -71,35 +71,36 @@ class Simulation:
         #     road.nodes.extend(self.lane_nodes[i])
         #     scenario.add_road(road)
 
-        mid_ids = [f'main_road_{i}' for i in range(0, 100)]
-        left_ids = [f'left_road_{i}' for i in range(0, 100)]
-        right_ids = [f'right_road_{i}' for i in range(0, 100)]
-        for segment in segments:
-            for i, lane in enumerate(segment.simlanes):
-                main_road = Road('road_asphalt_2lane', rid=mid_ids[i])
-                main_road.nodes.extend(lane.mid)
-                scenario.add_road(main_road)
-                if i == 0:
-                    left_marking = Road('line_white', rid=f'{left_ids[i]}')
-                    left_marking.nodes.extend(lane.left.points)
-                    scenario.add_road(left_marking)
-                elif i == len(segment.simlanes) - 1:
-                    right_marking = Road('line_white', rid=f'{right_ids[i]}')
-                    right_marking.nodes.extend(lane.right.points)
-                    scenario.add_road(right_marking)
+        def render_road(id, name, points):
+            road = Road(name, rid=id)
+            road.nodes.extend(points)
+            return road
 
-                if len(segment.simlanes) > 2:
-                        left_marking = Road('line_yellow', rid=f'{left_ids[i]}')
-                        left_marking.nodes.extend(lane.left.points)
-                        scenario.add_road(left_marking)
-                        right_marking = Road('line_yellow', rid=f'{right_ids[i]}')
-                        right_marking.nodes.extend(lane.right.points)
-                        scenario.add_road(right_marking)
+        for s, segment in enumerate(segments):
+            for i, lane in enumerate(segment.simlanes):
+                m_id = f'main_road_{s}_{i}'
+                l_id = f'left_road_{s}_{i}'
+                r_id = f'right_road_{s}_{i}'
+                scenario.add_road(render_road(m_id, 'road_asphalt_2lane', lane.mid))
+                if len(segment.simlanes) == 1:
+                    scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
+                    scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
+                elif len(segment.simlanes) == 2:
+                    if i == 0:
+                        scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
+                        scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
+                    else:
+                        scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
                 else:
                     if i == 0:
-                        right_marking = Road('line_yellow', rid=f'{right_ids[i]}')
-                        right_marking.nodes.extend(lane.right.points)
-                        scenario.add_road(right_marking)
+                        scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
+                    elif i == len(segment.simlanes) - 1:
+                        scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
+                    else:
+                        scenario.add_road(render_road(l_id, 'line_yellow', lane.left.points))
+                        scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
+
+
 
         for v in vehicles:
             color = v.color

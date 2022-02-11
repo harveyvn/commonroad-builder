@@ -35,29 +35,34 @@ class Segment:
 
         if debug:
             plt.clf()
-            for i, sl in enumerate(simlanes):
-                sl: SimLane = sl
-                left: Stripe = sl.left
-                right: Stripe = sl.right
-                poly = LineString([(t[0], t[1]) for t in sl.mid]).buffer(sl.width / 2, cap_style=2, join_style=2)
-                patch = PolygonPatch(poly, fc='gray', ec='dimgray')
-                plt.gca().add_patch(patch)
-                if i == 0:
-                    render_stripe(plt, left)
-                elif i == len(simlanes) - 1:
-                    render_stripe(plt, right)
-                else:
-                    render_stripe(plt, left)
-                    render_stripe(plt, right)
-                xs = [point[0] for point in sl.mid]
-                ys = [point[1] for point in sl.mid]
-                plt.plot(xs, ys, color='r')
-            plt.gca().set_aspect('equal')
-            plt.title("Road new CRISCE")
+            fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+            ax = self.visualize(ax, simlanes)
+            ax.title.set_text("Road new CRISCE")
             plt.show()
             exit()
 
         self.simlanes = simlanes
+
+    def visualize(self, ax):
+        for i, sl in enumerate(self.simlanes):
+            sl: SimLane = sl
+            left: Stripe = sl.left
+            right: Stripe = sl.right
+            poly = LineString([(t[0], t[1]) for t in sl.mid]).buffer(sl.width / 2, cap_style=2, join_style=2)
+            patch = PolygonPatch(poly, fc='gray', ec='dimgray')
+            ax.add_patch(patch)
+            if i == 0:
+                render_stripe(plt, left)
+            elif i == len(self.simlanes) - 1:
+                render_stripe(plt, right)
+            else:
+                render_stripe(plt, left)
+                render_stripe(plt, right)
+            xs = [point[0] for point in sl.mid]
+            ys = [point[1] for point in sl.mid]
+            ax.plot(xs, ys, color='r')
+        ax.set_aspect('equal')
+        return ax
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

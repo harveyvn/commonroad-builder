@@ -15,11 +15,11 @@ from modules.crisce.pre_processing import Pre_Processing
 from modules.crisce.roads import Roads
 from modules.crisce.car import Car
 from modules.crisce.kinematics import Kinematics
-from modules.crisce import extract_data_from_scenario
+from modules.crisce.common import visualize_crisce_sketch, visualize_crisce_simlanes
+from modules.crisce import extract_data_from_scenario, Vehicle
 from modules.roadlane import categorize_roadlane, refine_roadlanes
 from modules.analyzer import Analyzer
 from modules.arrow import ArrowAnalyzer
-from modules.models import Map
 from modules.constant import CONST
 
 if platform.system() == CONST.WINDOWS:
@@ -82,9 +82,9 @@ def cli(ctx, log_to, debug):
               help="Name of the dataset the accident comes from.")
 @click.option('--output-to', required=False, type=click.Path(exists=False), multiple=False,
               help="Folder to store outputs. It will created if not present. If omitted we use the accident folder.")
-@click.option('--beamng-home', required=True, type=click.Path(exists=True), multiple=False,
+@click.option('--beamng-home', required=False, type=click.Path(exists=True), multiple=False,
               help="Home folder of the BeamNG.research simulator")
-@click.option('--beamng-user', required=True, type=click.Path(exists=True), multiple=False,
+@click.option('--beamng-user', required=False, type=click.Path(exists=True), multiple=False,
               help="User folder of the BeamNG.research simulator")
 #
 # TODO This is not working right now, I suspect we need the CSV in any case !
@@ -199,35 +199,17 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         print(len(roads["small_lane_midpoints"][0]))
         print(len(roads["simulation_lane_midpoints"][0]))
 
-        plt.clf()
-        road_width = roads["sketch_lane_width"][0]
-        road_poly = LineString([(t[0], t[1]) for t in roads["large_lane_midpoints"]]).buffer(road_width / 2,
-                                                                                             cap_style=2, join_style=2)
-        road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
-        plt.gca().add_patch(road_patch)
-        xs = [point[0] for point in roads["large_lane_midpoints"]]
-        ys = [point[1] for point in roads["large_lane_midpoints"]]
-        plt.plot(xs, ys, color='r')
-        plt.gca().set_aspect('equal')
-        plt.title("Road Sketch")
-        plt.show()
+        # plt.clf()
+        # fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        # ax = visualize_crisce_sketch(ax, roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
+        # ax.title.set_text("Road Sketch")
+        # plt.show()
 
-        plt.clf()
-        for i, item in enumerate(roads["scaled_lane_width"]):
-            road_width = roads["scaled_lane_width"][i]
-            road_poly = LineString([(t[0], t[1]) for t in roads["simulation_lane_midpoints"][i]]).buffer(road_width / 2,
-                                                                                                         cap_style=2,
-                                                                                                         join_style=2)
-            road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
-            plt.gca().add_patch(road_patch)
-            xs = [point[0] for point in roads["simulation_lane_midpoints"][i]]
-            ys = [point[1] for point in roads["simulation_lane_midpoints"][i]]
-            plt.plot(xs, ys, color='r')
-        plt.gca().set_aspect('equal')
-        plt.title("Road CRISCE")
-        plt.show()
-        # print(lane_nodes)
-        # print(road_lanes)
+        # plt.clf()
+        # fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        # ax = visualize_crisce_simlanes(ax, roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
+        # ax.title.set_text("Road CRISCE")
+        # plt.show()
         print("\n=============")
         print("Road Beamng")
         for l in lane_nodes:
@@ -245,9 +227,27 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             lane_dict = analyzer.search_laneline()
             lines = analyzer.categorize_laneline(lane_dict)
             # analyzer.visualize()
-            segment.generate_simlanes(lines, a_ratio, True)
+            segment.generate_simlanes(lines, a_ratio)
 
-        exit()
+        print("==================================================")
+        print("==================================================")
+        plt.clf()
+        fig, ax = plt.subplots(1, 3, figsize=(25, 8))
+        ax[0] = visualize_crisce_sketch(ax[0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
+        ax[0].title.set_text("CRISCE Road Sketch")
+        ax[0].set_aspect('auto')
+
+        ax[1] = visualize_crisce_simlanes(ax[1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
+        ax[1].title.set_text("CRISCE Road Simulation")
+        ax[1].set_aspect('auto')
+
+        for segment in segments:
+            ax[2] = segment.visualize(ax[2])
+        ax[2].set_aspect('auto')
+        ax[2].title.set_text("CRISCE Road Simulation with Lane Marking")
+        plt.show()
+        print("==================================================")
+        print("==================================================")
 
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")
@@ -270,17 +270,6 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         sketch_id = os.path.basename(os.path.dirname(sketch_image_path))
         logger.info(f"Execution of sketch {sketch_id} Starts")
 
-        class Vh:
-            def __init__(self, script, pos, rot, color, color_code, debug_script, spheres):
-                import matplotlib.colors as colors
-                self.script = script
-                self.debug_script = debug_script
-                self.pos = pos
-                self.rot = rot
-                self.color = color
-                self.color_code = colors.to_rgba(list(map(float, color_code.split())))
-                self.spheres = spheres
-
         vhs = []
         for color in vehicles:
             color_code = CONST.RED_RGBA
@@ -292,7 +281,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             distorted_height = height * CONST.CAR_LENGTH_SIM / car_length
             x = orig_pos[0] * CONST.CAR_LENGTH_SIM / car_length
             y = distorted_height - (orig_pos[1] * CONST.CAR_LENGTH_SIM / car_length)
-            vh = Vh(
+            vh = Vehicle(
                 script=vehicle["trajectories"]["script_trajectory"],
                 pos=(round(x, 1), round(y, 1), 0),
                 rot=(0, 0, -angle - 90),

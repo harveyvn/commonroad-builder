@@ -10,6 +10,7 @@ from numpy.ma import arange
 from shapely.geometry import LineString, Point
 from shapely.affinity import translate, rotate
 from math import degrees, atan2, copysign
+from descartes import PolygonPatch
 
 # Constants
 rounding_precision = 3
@@ -293,3 +294,31 @@ def extract_data_from_scenario(dir_path, dataset_name=None, output_to=None):
                                         show_image=False, output_folder=output_folder,
                                         car_length=car_length, car_width=car_width,
                                         car_length_sim=car_length_sim)
+
+
+def visualize_crisce_sketch(ax, width, points):
+    road_width = width
+    road_poly = LineString([(t[0], t[1]) for t in points]).buffer(road_width / 2,
+                                                                                         cap_style=2, join_style=2)
+    road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
+    ax.add_patch(road_patch)
+    xs = [point[0] for point in points]
+    ys = [point[1] for point in points]
+    ax.plot(xs, ys, color='r')
+    ax.set_aspect('equal')
+    return ax
+
+
+def visualize_crisce_simlanes(ax, widths, points_list):
+    for i, item in enumerate(widths):
+        road_width = widths[i]
+        road_poly = LineString([(t[0], t[1]) for t in points_list[i]]).buffer(road_width / 2,
+                                                                                                     cap_style=2,
+                                                                                                     join_style=2)
+        road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
+        ax.add_patch(road_patch)
+        xs = [point[0] for point in points_list[i]]
+        ys = [point[1] for point in points_list[i]]
+        ax.plot(xs, ys, color='r')
+    ax.set_aspect('equal')
+    return ax

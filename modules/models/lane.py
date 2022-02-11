@@ -1,6 +1,6 @@
 from .line import Line
 from .bnglane import BngLane, Stripe
-from .lib import generate, flip
+from .lib import generate
 from modules.common import midpoint
 from shapely.geometry import LineString, Point
 
@@ -22,14 +22,6 @@ class Lane:
         ls = generate(self.left.ls, ratio, 0.1)
         rs = generate(self.right.ls, ratio, 0.1)
         ms = generate(self.mid.ls, ratio, ratio * self.width)
-        return BngLane(left=Stripe(ls, self.left.num, self.left.pattern),
-                       right=Stripe(rs, self.right.num, self.right.pattern),
-                       mid=ms, width=ratio * self.width)
-
-    def get_bnglane_flip(self, ratio):
-        ls = generate(flip(self.left.ls), ratio, 0.1)
-        rs = generate(flip(self.right.ls), ratio, 0.1)
-        ms = generate(flip(self.mid.ls), ratio, ratio * self.width)
         return BngLane(left=Stripe(ls, self.left.num, self.left.pattern),
                        right=Stripe(rs, self.right.num, self.right.pattern),
                        mid=ms, width=ratio * self.width)

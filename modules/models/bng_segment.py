@@ -23,7 +23,7 @@ class BngSegement:
     def transform(self, dx: float, dy: float):
         def run(stripe: Stripe):
             ls = LineString([(p[0], p[1]) for p in stripe.points])
-            width = stripe.points[0][2]
+            width = stripe.points[0][3]
             p1 = Point([(p[0], p[1]) for p in stripe.points][0])
             origin = Point(p1.x - dx, p1.y - dy)
             ls = translate_ls_to_new_origin(ls, origin)

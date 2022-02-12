@@ -3,12 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .lane import Lane
 from .line import Line
-from .lib import render_stripe
-from .bnglane import BngLane, Stripe
+from .bng_segment import BngSegement
 from typing import List
-from descartes import PolygonPatch
 from shapely.geometry import Polygon, LineString, Point
-from modules.common import pairs, translate_ls_to_new_origin
+from modules.common import pairs, translate_ls_to_new_origin, midpoint
 
 
 class Segment:
@@ -26,22 +24,11 @@ class Segment:
         self.angle: float = 0
         self.is_horizontal = False
         self.is_vertical = False
-        self.lanes: List[Lane] = []
-        self.bnglanes: List[BngLane] = []
-        self.lines: List[Line] = []
+        self.bng_segment = None
 
-    def generate_lanes(self, lines: List[Line]):
-        self.lines = lines
-        lanes = []
-        for l1, l2 in pairs(self.lines):
-            lanes.append(Lane(left=l1, right=l2))
-        self.lanes = lanes
-        return self.lanes
-
-    def get_bnglanes(self, ratio: float, debug: bool = False):
-        lines = copy.deepcopy(self.lines)
-        reversed_lines = copy.deepcopy(self.lines)
-        lanes, bnglanes = self.lanes.copy(), []
+    def get_bng_segment(self, lines: List[Line], ratio: float, debug: bool = False):
+        lines = copy.deepcopy(lines)
+        reversed_lines = copy.deepcopy(lines)
 
         if self.angle == -90:
             for i, line in enumerate(lines):
@@ -54,43 +41,43 @@ class Segment:
                 reversed_lines[i].ls = move
             lines = reversed_lines
 
-            lanes = []
-            for l1, l2 in pairs(lines):
-                lanes.append(Lane(left=l1, right=l2))
+        first, last = lines[0], lines[-1]
+        left = copy.deepcopy(first)
+        right = copy.deepcopy(last)
 
-        for lane in lanes:
-            bng_lane = lane.get_bnglane(ratio)
-            bnglanes.append(bng_lane)
-        self.bnglanes = bnglanes
+        mps, width = [], 0
+        for l, r in zip(list(left.ls.coords), list(right.ls.coords)):
+            point_left = Point(l[0], l[1])
+            point_right = Point(r[0], r[1])
+            mps.append(midpoint(point_left, point_right))
+            if point_right.distance(point_left) > width:
+                width = point_right.distance(point_left)
+        center = Line(ls=LineString(mps))
+
+        marks = []
+        if len(lines) > 2:
+            for i, l in enumerate(lines):
+                if (i == 0 or i == (len(lines) - 1)) is False:
+                    marks.append(l)
+
+        bs = BngSegement(left, right, center, marks, width, ratio, self.angle)
 
         if debug:
             plt.clf()
             fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-            ax = self.visualize(ax)
-            ax.title.set_text("Road new CRISCE")
+            ax = bs.visualize(ax)
+            ax.title.set_text("New Road with Lanelines")
             plt.show()
             exit()
 
-    def visualize(self, ax):
-        for i, sl in enumerate(self.bnglanes):
-            sl: BngLane = sl
-            left: Stripe = sl.left
-            right: Stripe = sl.right
-            poly = LineString([(t[0], t[1]) for t in sl.mid]).buffer(sl.width / 2, cap_style=2, join_style=2)
-            patch = PolygonPatch(poly, fc='gray', ec='dimgray')
-            ax.add_patch(patch)
-            if i == 0:
-                render_stripe(plt, left)
-            elif i == len(self.bnglanes) - 1:
-                render_stripe(plt, right)
-            else:
-                render_stripe(plt, left)
-                render_stripe(plt, right)
-            xs = [point[0] for point in sl.mid]
-            ys = [point[1] for point in sl.mid]
-            ax.plot(xs, ys, color='r')
-        ax.set_aspect('equal')
-        return ax
+        self.bng_segment = bs
+
+    def generate_lanes(self, lines: List[Line]):
+        lanes = []
+        for l1, l2 in pairs(lines):
+            lanes.append(Lane(left=l1, right=l2))
+        self.lanes = lanes
+        return self.lanes
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

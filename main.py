@@ -185,60 +185,8 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                                                                             output_folder=output_folder,
                                                                             show_image=show_image)
 
-        if road_lanes["road_type"] > 0:
-            road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
-        lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
-        (image, baselines, segments) = lane_factory.run()
-        for segment in segments:
-            analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
-            lane_dict = analyzer.search_laneline()
-            lines = analyzer.categorize_laneline(lane_dict)
-            analyzer.visualize()
-            segment.generate_lanes(lines)
-            segment.get_bnglanes(a_ratio)
-
         print("==================================================")
         print("==================================================")
-        plt.clf()
-        fig, ax = plt.subplots(1, 3, figsize=(25, 8))
-        ax[0] = visualize_crisce_sketch(ax[0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
-        ax[0].title.set_text("CRISCE Road Sketch")
-        ax[0].set_aspect("equal")
-
-        ax[1] = visualize_crisce_simlanes(ax[1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
-        ax[1].title.set_text("CRISCE Road Simulation")
-        ax[1].set_aspect("equal")
-
-        for segment in segments:
-            ax[2] = segment.visualize(ax[2])
-        ax[2].set_aspect("equal")
-        ax[2].title.set_text("CRISCE Road Simulation with Lane Marking")
-        plt.show()
-        print("==================================================")
-        print("==================================================")
-
-        exit()
-
-        # Step 4: Generate the simulation
-        simulation_folder = os.path.join(output_folder, "simulation/")
-        if not os.path.exists(simulation_folder):
-            os.makedirs(simulation_folder)
-
-        simulation = Simulation(vehicles=vehicles, roads=roads,
-                                lane_nodes=lane_nodes, kinematics=kinematics,
-                                time_efficiency=time_efficiency, output_folder=simulation_folder,
-                                car_length=car_length, car_width=car_width,
-                                car_length_sim=CONST.CAR_LENGTH_SIM, sketch_type_external=sketch_type_external,
-                                height=height, width=width,
-                                crash_impact_model=CONST.CRISCE_IMPACT_MODEL,
-                                sampling_frequency=5,
-                                road_lanes=road_lanes)
-
-        logger.info("Generation Ends")
-
-        # Step 5: Execute the simulation on BeamNG.research
-        sketch_id = os.path.basename(os.path.dirname(sketch_image_path))
-        logger.info(f"Execution of sketch {sketch_id} Starts")
 
         vhs = []
         for color in vehicles:
@@ -263,6 +211,89 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             vhs.append(vh)
             print(vh.color)
             print(vh.script)
+
+        if road_lanes["road_type"] > 0:
+            road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
+        lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
+        (image, baselines, segments) = lane_factory.run()
+        for segment in segments:
+            analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
+            lane_dict = analyzer.search_laneline()
+            lines = analyzer.categorize_laneline(lane_dict)
+            # analyzer.visualize()
+            segment.get_bng_segment(lines, a_ratio)
+
+        # exit()
+        def render_vehicle_trajectory(ax, vehicles):
+            for v in vehicles:
+                xs = [p['x'] for p in v.script]
+                ys = [p['y'] for p in v.script]
+                c = 'r' if v.color == "red" else 'b'
+                ax.plot(xs, ys, c=c, marker="x")
+            return ax
+
+        print("==================================================")
+        print("==================================================")
+        print("==================================================")
+        print("==================================================")
+        plt.clf()
+        fig, ax = plt.subplots(2, 2, figsize=(20, 12))
+        ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
+        ax[0][0].title.set_text("CRISCE Road Sketch")
+        ax[0][0].set_aspect("equal")
+
+        ax[0][1] = visualize_crisce_simlanes(ax[0][1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
+        ax[0][1].title.set_text("CRISCE Road Simulation")
+        ax[0][1].set_aspect("equal")
+
+        for segment in segments:
+            ax[1][0] = segment.bng_segment.visualize(ax[1][0])
+        ax[1][0].set_aspect("equal")
+        ax[1][0].title.set_text("New Road Simulation with Lane Marking")
+
+        for i, segment in enumerate(segments):
+            if segment.angle == -90:
+                from shapely.geometry import Point
+                fp = segments[i].bng_segment.center.points[0]
+                p1 = Point(fp[0], fp[1])
+                p2 = Point(roads["simulation_lane_midpoints"][i][0])
+                dx = p1.x - p2.x
+                dy = p1.y - p2.y
+                segments[i].bng_segment.transform(dx, dy)
+            ax[1][1] = segment.bng_segment.visualize(ax[1][1])
+        ax[1][1].set_aspect("equal")
+        ax[1][1].title.set_text("Adjusted Road Simulation with Lane Marking")
+
+        ax[0][0] = render_vehicle_trajectory(ax[0][0], vhs)
+        ax[0][1] = render_vehicle_trajectory(ax[0][1], vhs)
+        ax[1][0] = render_vehicle_trajectory(ax[1][0], vhs)
+        ax[1][1] = render_vehicle_trajectory(ax[1][1], vhs)
+        plt.show()
+        print("==================================================")
+        print("==================================================")
+        # exit()
+
+
+        # Step 4: Generate the simulation
+        simulation_folder = os.path.join(output_folder, "simulation/")
+        if not os.path.exists(simulation_folder):
+            os.makedirs(simulation_folder)
+
+        simulation = Simulation(vehicles=vehicles, roads=roads,
+                                lane_nodes=lane_nodes, kinematics=kinematics,
+                                time_efficiency=time_efficiency, output_folder=simulation_folder,
+                                car_length=car_length, car_width=car_width,
+                                car_length_sim=CONST.CAR_LENGTH_SIM, sketch_type_external=sketch_type_external,
+                                height=height, width=width,
+                                crash_impact_model=CONST.CRISCE_IMPACT_MODEL,
+                                sampling_frequency=5,
+                                road_lanes=road_lanes)
+
+        logger.info("Generation Ends")
+
+        # Step 5: Execute the simulation on BeamNG.research
+        sketch_id = os.path.basename(os.path.dirname(sketch_image_path))
+        logger.info(f"Execution of sketch {sketch_id} Starts")
 
         simulation.bng, simulation.scenario = simulation.setupBeamngSimulation(sketch_id, beamng_port=64257,
                                                                                beamng_home=beamng_home,

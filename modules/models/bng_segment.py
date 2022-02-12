@@ -33,5 +33,4 @@ class BngSegement:
         render_stripe(ax, self.right, "blue")
         for m in self.marks:
             render_stripe(ax, m, "yellow")
-        ax.set_aspect('equal')
         return ax

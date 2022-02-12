@@ -24,6 +24,7 @@ class Segment:
         self.angle: float = 0
         self.is_horizontal = False
         self.is_vertical = False
+        self.bng_segment = None
 
     def get_bng_segment(self, lines: List[Line], ratio: float, debug: bool = False):
         lines = copy.deepcopy(lines)
@@ -69,7 +70,7 @@ class Segment:
             plt.show()
             exit()
 
-        return bs
+        self.bng_segment = bs
 
     def generate_lanes(self, lines: List[Line]):
         lanes = []

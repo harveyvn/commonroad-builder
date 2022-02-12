@@ -10,6 +10,7 @@ from shapely.geometry import MultiLineString, Polygon
 import pandas as pd
 from modules.models import Segment
 from typing import List
+from modules.models import BngSegement
 
 
 class Simulation:
@@ -77,33 +78,12 @@ class Simulation:
             return road
 
         for s, segment in enumerate(segments):
-            for i, lane in enumerate(segment.bnglanes):
-                l_id = f'left_road_{s}_{i}'
-                r_id = f'right_road_{s}_{i}'
-                if len(segment.bnglanes) == 1:
-                    scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
-                    scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
-                elif len(segment.bnglanes) == 2:
-                    if i == 0:
-                        scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
-                        scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
-                    else:
-                        scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
-                else:
-                    if i == 0:
-                        scenario.add_road(render_road(l_id, 'line_white', lane.left.points))
-                    elif i == len(segment.bnglanes) - 1:
-                        scenario.add_road(render_road(r_id, 'line_white', lane.right.points))
-                    else:
-                        scenario.add_road(render_road(l_id, 'line_yellow', lane.left.points))
-                        scenario.add_road(render_road(r_id, 'line_yellow', lane.right.points))
-
-        for s, segment in enumerate(segments):
-            for i, lane in enumerate(segment.bnglanes):
-                m_id = f'main_road_{s}_{i}'
-                scenario.add_road(render_road(m_id, 'road_asphalt_2lane', lane.mid))
-
-
+            bs: BngSegement = segment.bng_segment
+            scenario.add_road(render_road(f'left_road_{s}', 'line_white', bs.left.points))
+            scenario.add_road(render_road(f'right_road_{s}', 'line_white', bs.right.points))
+            for i, m in enumerate(bs.marks):
+                scenario.add_road(render_road(f'mark_road_{s}_{i}', 'line_yellow', m.points))
+            scenario.add_road(render_road(f'main_road_{s}', 'road_asphalt_2lane', bs.center.points))
 
         for v in vehicles:
             color = v.color

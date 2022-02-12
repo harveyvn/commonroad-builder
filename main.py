@@ -223,6 +223,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             # analyzer.visualize()
             segment.get_bng_segment(lines, a_ratio)
 
+        # exit()
         def render_vehicle_trajectory(ax, vehicles):
             for v in vehicles:
                 xs = [p['x'] for p in v.script]
@@ -270,6 +271,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         plt.show()
         print("==================================================")
         print("==================================================")
+        # exit()
 
 
         # Step 4: Generate the simulation

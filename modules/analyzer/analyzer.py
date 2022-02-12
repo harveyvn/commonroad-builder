@@ -111,7 +111,7 @@ class Analyzer:
 
         return good_lines, bad_lines
 
-    def search_laneline(self):
+    def search_laneline(self, num_points: int = 10):
         """
         Search lane lines by defining a region within an image, then crop the region
         and measure the density of non-black pixels.
@@ -162,7 +162,7 @@ class Analyzer:
 
         # Find the starting valid x, so that the window line will not be out of range e.g. oor
         first_x, oor_lines = self.del_oor_lines()
-        good_lines, bad_lines = self.find_lines(starting_x=first_x)
+        good_lines, bad_lines = self.find_lines(starting_x=first_x, num_points=num_points)
 
         # Debug:
         # if len(oor_lines.keys()) > 0:

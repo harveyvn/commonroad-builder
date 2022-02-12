@@ -303,7 +303,7 @@ def visualize_crisce_sketch(ax, width, points):
     ax.add_patch(road_patch)
     xs = [point[0] for point in points]
     ys = [point[1] for point in points]
-    ax.plot(xs, ys, color='r')
+    ax.plot(xs, ys, color='coral')
     ax.set_aspect('equal')
     return ax
 
@@ -316,6 +316,6 @@ def visualize_crisce_simlanes(ax, widths, points_list):
         ax.add_patch(road_patch)
         xs = [point[0] for point in points_list[i]]
         ys = [point[1] for point in points_list[i]]
-        ax.plot(xs, ys, color='r')
+        ax.plot(xs, ys, color='coral')
     ax.set_aspect('equal')
     return ax

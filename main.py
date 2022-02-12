@@ -235,29 +235,42 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         print("==================================================")
         print("==================================================")
         print("==================================================")
-        for i in [0, 1]:
-            plt.clf()
-            fig, ax = plt.subplots(1, 3, figsize=(25, 8))
-            ax[0] = visualize_crisce_sketch(ax[0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
-            ax[0].title.set_text("CRISCE Road Sketch")
-            ax[0].set_aspect("equal")
+        plt.clf()
+        fig, ax = plt.subplots(2, 2, figsize=(20, 12))
+        ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
+        ax[0][0].title.set_text("CRISCE Road Sketch")
+        ax[0][0].set_aspect("equal")
 
-            ax[1] = visualize_crisce_simlanes(ax[1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
-            ax[1].title.set_text("CRISCE Road Simulation")
-            ax[1].set_aspect("equal")
+        ax[0][1] = visualize_crisce_simlanes(ax[0][1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
+        ax[0][1].title.set_text("CRISCE Road Simulation")
+        ax[0][1].set_aspect("equal")
 
-            for segment in segments:
-                ax[2] = segment.bng_segment.visualize(ax[2])
-            ax[2].set_aspect("equal")
-            ax[2].title.set_text("New Road Simulation with Lane Marking")
+        for segment in segments:
+            ax[1][0] = segment.bng_segment.visualize(ax[1][0])
+        ax[1][0].set_aspect("equal")
+        ax[1][0].title.set_text("New Road Simulation with Lane Marking")
 
-            if i == 1:
-                ax[0] = render_vehicle_trajectory(ax[0], vhs)
-                ax[1] = render_vehicle_trajectory(ax[1], vhs)
-                ax[2] = render_vehicle_trajectory(ax[2], vhs)
-            plt.show()
+        for i, segment in enumerate(segments):
+            if segment.angle == -90:
+                from shapely.geometry import Point
+                fp = segments[i].bng_segment.center.points[0]
+                p1 = Point(fp[0], fp[1])
+                p2 = Point(roads["simulation_lane_midpoints"][i][0])
+                dx = p1.x - p2.x
+                dy = p1.y - p2.y
+                segments[i].bng_segment.transform(dx, dy)
+            ax[1][1] = segment.bng_segment.visualize(ax[1][1])
+        ax[1][1].set_aspect("equal")
+        ax[1][1].title.set_text("Adjusted Road Simulation with Lane Marking")
+
+        ax[0][0] = render_vehicle_trajectory(ax[0][0], vhs)
+        ax[0][1] = render_vehicle_trajectory(ax[0][1], vhs)
+        ax[1][0] = render_vehicle_trajectory(ax[1][0], vhs)
+        ax[1][1] = render_vehicle_trajectory(ax[1][1], vhs)
+        plt.show()
         print("==================================================")
         print("==================================================")
+
 
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")

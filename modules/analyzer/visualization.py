@@ -104,8 +104,8 @@ class Visualization:
         for i, line in enumerate(lines):
             ax.plot([p[0] for p in lst[i].coords],
                     [p[1] for p in lst[i].coords],
-                    linewidth=4 if line.num == "double" else 1,
-                    linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
+                    linewidth=3 if line.num == "double" else 1,
+                    linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid")
         ax.set_aspect("auto")
         return ax
 
@@ -119,8 +119,8 @@ class Visualization:
         for i, line in enumerate(lines):
             ax.plot([p[0] for p in lst[i].coords],
                     [p[1] for p in lst[i].coords],
-                    linewidth=4 if line.num == "double" else 1,
-                    linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
+                    linewidth=3 if line.num == "double" else 1,
+                    linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid")
         ax.set_aspect("equal")
         return ax
 

@@ -44,6 +44,7 @@ class Segment:
         first, last = lines[0], lines[-1]
         left = copy.deepcopy(first)
         right = copy.deepcopy(last)
+        assert len(list(left.ls.coords)) == len(list(right.ls.coords))
 
         mps, width = [], 0
         for l, r in zip(list(left.ls.coords), list(right.ls.coords)):

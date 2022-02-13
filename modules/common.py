@@ -178,6 +178,7 @@ def smooth_line(coords: List, debug: bool = False):
     coefs = poly.polyfit(xs, ys, 2)
 
     first, last = xs[0], xs[-1]
+    assert last > first
     poly_xs = np.arange(start=first, stop=last, step=abs(last - first) / 400).tolist()
     poly_ys = poly.polyval(poly_xs, coefs)
     coords = [(x, y) for x, y in zip(poly_xs, poly_ys)]

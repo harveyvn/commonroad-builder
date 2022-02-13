@@ -96,6 +96,7 @@ def midpoint(p1: Point, p2: Point):
 
 
 def order_points(points, ind: int = 0):
+    is_horizontal, is_vertical = orient(points)
     points_new = [points.pop(ind)]  # initialize a new list of points with the known first point
     pcurr = points_new[-1]  # initialize the current point (as the known point)
     while len(points) > 0:
@@ -104,6 +105,11 @@ def order_points(points, ind: int = 0):
         ind = d.argmin()  # index of the closest point
         points_new.append(points.pop(ind))  # append the closest point to points_new
         pcurr = points_new[-1]  # update the current point
+
+    if is_horizontal:
+        points_new.sort(key=lambda x: x[0])
+    if is_vertical:
+        points_new.sort(key=lambda x: x[1])
     return points_new
 
 
@@ -111,6 +117,8 @@ def orient(line):
     lineA, lineB = line, [[0, 0], [1, 0]]
     diff = angle(lineA, lineB)
     is_horizontal = True if -2 <= diff <= 6 else False
+    if is_horizontal is False:
+        is_horizontal = True if 175 <= diff <= 183 else False
     is_vertical = True if 80 <= diff <= 100 else False
     return is_horizontal, is_vertical
 

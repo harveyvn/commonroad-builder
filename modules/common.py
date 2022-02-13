@@ -107,7 +107,7 @@ def order_points(points, ind: int = 0):
         pcurr = points_new[-1]  # update the current point
 
     if is_horizontal:
-        points_new.sort(key=lambda x: x[0])
+        points_new.sort(key=lambda x: x[0], reverse=True)
     if is_vertical:
         points_new.sort(key=lambda x: x[1])
     return points_new
@@ -178,7 +178,7 @@ def smooth_line(coords: List, debug: bool = False):
     coefs = poly.polyfit(xs, ys, 2)
 
     first, last = xs[0], xs[-1]
-    poly_xs = np.arange(first, last, abs(last - first) / 300).tolist()
+    poly_xs = np.arange(start=first, stop=last, step=abs(last - first) / 400).tolist()
     poly_ys = poly.polyval(poly_xs, coefs)
     coords = [(x, y) for x, y in zip(poly_xs, poly_ys)]
 

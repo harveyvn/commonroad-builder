@@ -47,3 +47,6 @@ class BngSegement:
         for m in self.marks:
             render_stripe(ax, m, "yellow")
         return ax
+
+    def __str__(self):
+        return str(self.__class__) + ": " + str(self.__dict__)

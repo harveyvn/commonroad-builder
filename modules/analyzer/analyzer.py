@@ -210,12 +210,13 @@ class Analyzer:
 
             # Process
             sel_lsr = affinity.rotate(sel_boundary, self.angle, (0, 0))
+            # Splitting to a fixed number of points
+            distances = np.linspace(0, sel_lsr.length, 10)
+            points = [sel_lsr.interpolate(distance) for distance in distances]
+            sel_lsr = LineString(points)
             for i, line in enumerate(lines):
-                distance = line.get_peak() - peaks[0]
-                if i == 0:
-                    ls = sel_lsr.parallel_offset(distance=distance, side=sel_side, join_style=2)
-                else:
-                    ls = reverse_geom(sel_lsr.parallel_offset(distance=distance, side=sel_side, join_style=2))
+                distance = line.get_peak() - peaks[0] if i > 0 else 0.000001
+                ls = reverse_geom(sel_lsr.parallel_offset(distance=distance, side=sel_side, join_style=2))
                 lsr = affinity.rotate(ls, -self.angle, (0, 0))
                 lsts.append(ls)
                 lstrs.append(lsr)

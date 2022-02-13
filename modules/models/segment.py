@@ -30,16 +30,12 @@ class Segment:
         lines = copy.deepcopy(lines)
         reversed_lines = copy.deepcopy(lines)
 
-        if self.angle == -90:
-            for i, line in enumerate(lines):
-                target = lines[i]
-                points = np.array(list(target.ls.coords))
-                flip = LineString(points.dot([[1, 0], [0, -1]]))
-                first = Point(list(lines[i].ls.coords)[0])
-                last = Point(list(lines[len(lines) - 1 - i].ls.coords)[0])
-                move = translate_ls_to_new_origin(flip, Point(first.x, last.y))
-                reversed_lines[i].ls = move
-            lines = reversed_lines
+        for i, line in enumerate(lines):
+            target = lines[i]
+            points = np.array(list(target.ls.coords))
+            flip = LineString(points.dot([[1, 0], [0, -1]]))
+            reversed_lines[i].ls = flip
+        lines = reversed_lines
 
         first, last = lines[0], lines[-1]
         left = copy.deepcopy(first)

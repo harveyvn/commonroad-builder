@@ -6,6 +6,7 @@ import numpy.polynomial.polynomial as poly
 import numpy as np
 from typing import List
 import matplotlib.pyplot as plt
+import math
 
 
 def reverse_geom(geom):
@@ -107,7 +108,7 @@ def order_points(points, ind: int = 0):
         pcurr = points_new[-1]  # update the current point
 
     if is_horizontal:
-        points_new.sort(key=lambda x: x[0], reverse=True)
+        points_new.sort(key=lambda x: x[0])
     if is_vertical:
         points_new.sort(key=lambda x: x[1])
     return points_new
@@ -178,7 +179,10 @@ def smooth_line(coords: List, debug: bool = False):
     coefs = poly.polyfit(xs, ys, 2)
 
     first, last = xs[0], xs[-1]
-    assert last > first
+    if last < first:
+        tmp = first
+        first = last
+        last = tmp
     poly_xs = np.arange(start=first, stop=last, step=abs(last - first) / 400).tolist()
     poly_ys = poly.polyval(poly_xs, coefs)
     coords = [(x, y) for x, y in zip(poly_xs, poly_ys)]
@@ -196,3 +200,16 @@ def smooth_line(coords: List, debug: bool = False):
         exit()
 
     return coords
+
+
+def compare2lst_direction(line1, line2):
+    cos_angle = 0
+    vec1 = (line1[1][0] - line1[0][0], line1[1][1] - line1[0][1])
+    vec2 = (line2[1][0] - line2[0][0], line2[1][1] - line2[0][1])
+
+    cos_angle = (vec1[0] * vec2[0] + vec1[1] * vec2[1]) / math.sqrt(
+        (vec1[0] ** 2 + vec1[1] ** 2) * (vec2[0] ** 2 + vec2[1] ** 2))
+
+    if -1 <= cos_angle <= -0.89:
+        return True
+    return False

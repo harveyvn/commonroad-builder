@@ -151,7 +151,16 @@ class Analyzer:
         # Find the angle for rotation
         lineA = [list(self.segment.mid_line.coords)[0], list(self.segment.mid_line.coords)[-1]]
         lineB = [[0, 0], [1, 0]]
-        difference = 90 - angle(lineA, lineB) if angle(lineA, lineB) > 8 else 90
+        alpha = 0
+        if -3 <= angle(lineA, lineB) <= 3:
+            alpha = 0
+        if 175 <= angle(lineA, lineB) <= 185:
+            alpha = 180
+        if 85 <= angle(lineA, lineB) <= 95:
+            alpha = 90
+        if -95 <= angle(lineA, lineB) <= -85:
+            alpha = -90
+        difference = 90 - alpha
         # Rotate our image by certain degrees around the center of the image
         self.rotated_img = imutils.rotate_bound(crop_img, -difference)
 

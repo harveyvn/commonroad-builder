@@ -25,25 +25,33 @@ class Segment:
         self.is_horizontal = False
         self.is_vertical = False
         self.bng_segment = None
+        self.lines: [Line] = []
+
+    def flip(self, height: float, debug: bool = False):
+        assert len(self.lines) > 0
+        lines = copy.deepcopy(self.lines)
+        flipped_lines = copy.deepcopy(lines)
+
+        for i, line in enumerate(lines):
+            target = lines[i]
+            ps = [(p[0], height - p[1]) for p in list(target.ls.coords)]
+            flip = LineString(ps)
+            flipped_lines[i].ls = flip
+
+        if debug:
+            plt.clf()
+            fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+            self.visualize(ax, flipped_lines, "Segment with original Lane Lines")
+            exit()
+
+        return flipped_lines
 
     def get_bng_segment(self, lines: List[Line], ratio: float, debug: bool = False):
         lines = copy.deepcopy(lines)
-        reversed_lines = copy.deepcopy(lines)
-
-        if self.angle == -90:
-            for i, line in enumerate(lines):
-                target = lines[i]
-                points = np.array(list(target.ls.coords))
-                flip = LineString(points.dot([[1, 0], [0, -1]]))
-                first = Point(list(lines[i].ls.coords)[0])
-                last = Point(list(lines[len(lines) - 1 - i].ls.coords)[0])
-                move = translate_ls_to_new_origin(flip, Point(first.x, last.y))
-                reversed_lines[i].ls = move
-            lines = reversed_lines
-
         first, last = lines[0], lines[-1]
         left = copy.deepcopy(first)
         right = copy.deepcopy(last)
+        assert len(list(left.ls.coords)) == len(list(right.ls.coords))
 
         mps, width = [], 0
         for l, r in zip(list(left.ls.coords), list(right.ls.coords)):
@@ -78,6 +86,17 @@ class Segment:
             lanes.append(Lane(left=l1, right=l2))
         self.lanes = lanes
         return self.lanes
+
+    @staticmethod
+    def visualize(ax, lines, title: str = "Segment with original Lane Lines"):
+        for line in lines:
+            xs = [p[0] for p in list(line.ls.coords)]
+            ys = [p[1] for p in list(line.ls.coords)]
+            ax.plot(xs, ys,
+                    linewidth=3 if line.num == "double" else 1,
+                    linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid")
+        ax.title.set_text(title)
+        return ax
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

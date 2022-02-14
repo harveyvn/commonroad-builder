@@ -13,5 +13,5 @@ def render_stripe(ax, line: Stripe, color: str):
     xs = [point[0] for point in line.points]
     ys = [point[1] for point in line.points]
     ax.plot(xs, ys, color=color,
-            linewidth=4 if line.num == "double" else 1,
-            linestyle=(0, (5, 10)) if line.pattern == "dashed" else "solid")
+            linewidth=3 if line.num == "double" else 1,
+            linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid")

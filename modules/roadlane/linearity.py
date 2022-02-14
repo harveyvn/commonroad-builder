@@ -12,7 +12,6 @@ class LinearLane(RoadLane):
         lane_width = self.params["lane_width"]
         coords = self.params["coords"]
         image = self.params["image"]
-        length = self.params["length"]
 
         # Define the polygon covering the road with the midline linestring, left & right boundaries
         buffer = 0.00005

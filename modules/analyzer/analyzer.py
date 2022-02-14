@@ -151,7 +151,16 @@ class Analyzer:
         # Find the angle for rotation
         lineA = [list(self.segment.mid_line.coords)[0], list(self.segment.mid_line.coords)[-1]]
         lineB = [[0, 0], [1, 0]]
-        difference = 90 - angle(lineA, lineB) if angle(lineA, lineB) > 8 else 90
+        alpha = 0
+        if -3 <= angle(lineA, lineB) <= 3:
+            alpha = 0
+        if 175 <= angle(lineA, lineB) <= 185:
+            alpha = 180
+        if 85 <= angle(lineA, lineB) <= 95:
+            alpha = 90
+        if -95 <= angle(lineA, lineB) <= -85:
+            alpha = -90
+        difference = 90 - alpha
         # Rotate our image by certain degrees around the center of the image
         self.rotated_img = imutils.rotate_bound(crop_img, -difference)
 
@@ -191,20 +200,32 @@ class Analyzer:
         """
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
+
+        # Define thickness
+        thickness = max([len(g) for g in groups])
         # Generating corresponding lines
-        lines = [Line(marks=dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
+        lines = [Line(thickness=thickness,
+                      marks=dict(filter(lambda i: i[0] in group, lane_dict.items()))) for group in groups]
 
         # Assign the lanes to the road
         lsts, lstrs = list(), list()
         if self.segment.kind == CONST.ROAD_CURVE_OR_STRAIGHT:
             peaks = [l.get_peak() for l in lines]
-            left_lsr = affinity.rotate(self.segment.left_boundary, self.angle, (0, 0))
+            sel_boundary = self.segment.right_boundary if self.segment.is_horizontal else self.segment.left_boundary
+            sel_side = "right"
+            # Default
+            if self.segment.is_vertical is False and self.segment.is_horizontal is False:
+                sel_boundary = self.segment.left_boundary
+
+            # Process
+            sel_lsr = affinity.rotate(sel_boundary, self.angle, (0, 0))
+            # Splitting to a fixed number of points
+            distances = np.linspace(0, sel_lsr.length, 10)
+            points = [sel_lsr.interpolate(distance) for distance in distances]
+            sel_lsr = LineString(points)
             for i, line in enumerate(lines):
-                distance = line.get_peak() - peaks[0]
-                if i == 0:
-                    ls = left_lsr.parallel_offset(distance=distance, side="right", join_style=2)
-                else:
-                    ls = reverse_geom(left_lsr.parallel_offset(distance=distance, side="right", join_style=2))
+                distance = line.get_peak() - peaks[0] if i > 0 else 0.000001
+                ls = reverse_geom(sel_lsr.parallel_offset(distance=distance, side=sel_side, join_style=2))
                 lsr = affinity.rotate(ls, -self.angle, (0, 0))
                 lsts.append(ls)
                 lstrs.append(lsr)
@@ -225,7 +246,7 @@ class Analyzer:
             line.ls = lstrs[i]
         return lines
 
-    def visualize(self, title: str = None, is_save: bool = False):
+    def visualize(self, title: str = None, is_save: bool = False, debug: bool = False):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(5, 2, figsize=(16, 24))
@@ -250,3 +271,8 @@ class Analyzer:
         plt.show()
         if is_save:
             fig.savefig(f'{title}.png', bbox_inches="tight")
+
+        if debug:
+            for l in viz_images["lines"]:
+                print(l)
+            exit()

@@ -104,6 +104,8 @@ def refine_roadlanes(roadway_data):
         roadway_data["lengths"] = [roadway_data["lengths"][0]]
         return roadway_data
 
+    return roadway_data
+
 
 def categorize_roadlane(roadway_data: dict) -> RoadwayCreator:
     """

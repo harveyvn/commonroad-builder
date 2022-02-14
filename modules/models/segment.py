@@ -26,14 +26,14 @@ class Segment:
         self.is_vertical = False
         self.bng_segment = None
 
-    def get_bng_segment(self, lines: List[Line], ratio: float, debug: bool = False):
+    def get_bng_segment(self, lines: List[Line], ratio: float, height, debug: bool = False):
         lines = copy.deepcopy(lines)
         reversed_lines = copy.deepcopy(lines)
 
         for i, line in enumerate(lines):
             target = lines[i]
-            points = np.array(list(target.ls.coords))
-            flip = LineString(points.dot([[1, 0], [0, -1]]))
+            ps = [(p[0], height - p[1]) for p in list(target.ls.coords)]
+            flip = LineString(ps)
             reversed_lines[i].ls = flip
         lines = reversed_lines
 

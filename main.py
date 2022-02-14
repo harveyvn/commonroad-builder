@@ -219,9 +219,10 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         for i, segment in enumerate(segments):
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
-            lines = analyzer.categorize_laneline(lane_dict)
+            segment.lines = analyzer.categorize_laneline(lane_dict)
+            flipped_lines = segment.flip(image.shape[0])
             # analyzer.visualize()
-            segment.get_bng_segment(lines, a_ratio, image.shape[0])
+            segment.get_bng_segment(flipped_lines, a_ratio)
 
         # exit()
         def render_vehicle_trajectory(ax, vehicles):
@@ -237,29 +238,39 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         print("==================================================")
         print("==================================================")
         plt.clf()
-        fig, ax = plt.subplots(2, 2, figsize=(20, 12))
+        fig, ax = plt.subplots(2, 3, figsize=(20, 12))
+        ax[0][0].imshow(image, cmap="gray", origin="lower")
         # ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
-        ax[0][0].title.set_text("CRISCE Road Sketch")
+        ax[0][0].title.set_text("Road Sketch")
         ax[0][0].set_aspect("equal")
 
         ax[0][1] = visualize_crisce_simlanes(ax[0][1], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
-        ax[0][1].title.set_text("CRISCE Road Simulation")
+        ax[0][1].title.set_text("CRISCE Road")
         ax[0][1].set_aspect("equal")
 
+        ax[0][2] = visualize_crisce_simlanes(ax[0][2], roads["scaled_lane_width"], roads["simulation_lane_midpoints"])
+        ax[0][2].title.set_text("CRISCE Road with Vehicle Trajectory")
+        ax[0][2].set_aspect("equal")
+
         for segment in segments:
-            ax[1][0] = segment.bng_segment.visualize(ax[1][0])
+            ax[1][0] = segment.visualize(ax[1][0], segment.lines)
         ax[1][0].set_aspect("equal")
-        ax[1][0].title.set_text("New Road Simulation with Lane Marking")
+
+        for segment in segments:
+            flipped_lines = segment.flip(image.shape[0])
+            ax[1][1] = segment.visualize(ax[1][1], flipped_lines, "Rotate the coordinates")
+        ax[1][1].set_aspect("equal")
 
         for i, segment in enumerate(segments):
-            ax[1][1] = segment.bng_segment.visualize(ax[1][1])
-        ax[1][1].set_aspect("equal")
-        ax[1][1].title.set_text("Adjusted Road Simulation with Lane Marking")
+            ax[1][2] = segment.bng_segment.visualize(ax[1][2])
+        ax[1][2].set_aspect("equal")
+        ax[1][2].title.set_text("Final Road with Lane Marking")
 
         ax[0][0] = render_vehicle_trajectory(ax[0][0], vhs)
-        ax[0][1] = render_vehicle_trajectory(ax[0][1], vhs)
+        ax[0][2] = render_vehicle_trajectory(ax[0][2], vhs)
         ax[1][0] = render_vehicle_trajectory(ax[1][0], vhs)
         ax[1][1] = render_vehicle_trajectory(ax[1][1], vhs)
+        ax[1][2] = render_vehicle_trajectory(ax[1][2], vhs)
         plt.show()
         print("==================================================")
         print("==================================================")

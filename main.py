@@ -216,12 +216,12 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
         lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
         (image, baselines, segments) = lane_factory.run()
-        for segment in segments:
+        for i, segment in enumerate(segments):
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
             lines = analyzer.categorize_laneline(lane_dict)
             # analyzer.visualize()
-            segment.get_bng_segment(lines, a_ratio)
+            segment.get_bng_segment(lines, a_ratio, image.shape[0])
 
         # exit()
         def render_vehicle_trajectory(ax, vehicles):
@@ -238,7 +238,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         print("==================================================")
         plt.clf()
         fig, ax = plt.subplots(2, 2, figsize=(20, 12))
-        ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
+        # ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
         ax[0][0].title.set_text("CRISCE Road Sketch")
         ax[0][0].set_aspect("equal")
 
@@ -252,14 +252,6 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         ax[1][0].title.set_text("New Road Simulation with Lane Marking")
 
         for i, segment in enumerate(segments):
-            if segment.angle == -90:
-                from shapely.geometry import Point
-                fp = segments[i].bng_segment.center.points[0]
-                p1 = Point(fp[0], fp[1])
-                p2 = Point(roads["simulation_lane_midpoints"][i][0])
-                dx = p1.x - p2.x
-                dy = p1.y - p2.y
-                segments[i].bng_segment.transform(dx, dy)
             ax[1][1] = segment.bng_segment.visualize(ax[1][1])
         ax[1][1].set_aspect("equal")
         ax[1][1].title.set_text("Adjusted Road Simulation with Lane Marking")
@@ -271,8 +263,7 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         plt.show()
         print("==================================================")
         print("==================================================")
-        # exit()
-
+        exit()
 
         # Step 4: Generate the simulation
         simulation_folder = os.path.join(output_folder, "simulation/")
@@ -455,8 +446,9 @@ if __name__ == '__main__':
     exit()
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
-    for s in [135859]:
-        path = f'CIREN/single/{s}'
+    intersections = [100237, 103378, 117021]
+    for s in [128066]:
+        path = f'CIREN/4roads/{s}'
 
         # Extract arrow direction
         kernel = np.ones((2, 2))
@@ -480,4 +472,28 @@ if __name__ == '__main__':
             lines = analyzer.categorize_laneline(lane_dict)
             # analyzer.visualize()
             segment.generate_lanes(lines)
-            segment.get_bnglanes(0.4, True)
+            segment.get_bng_segment(0.4, True)
+
+        # segment = segments[1]
+        # analyzer = Analyzer(image=image, lanelines=baselines, segment=segments[1])
+        # lane_dict = analyzer.search_laneline()
+        # lines = analyzer.categorize_laneline(lane_dict)
+        #
+        #
+        # from shapely.geometry import LineString
+        # for i, line in enumerate(lines):
+        #     points = np.array(list(line.ls.coords))
+        #     xs = [p[0] for p in points]
+        #     ys = [p[1] for p in points]
+        #     plt.plot(xs, ys, linewidth=3 if line.num == "double" else 1,
+        #              linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid")
+        #
+        # for i, line in enumerate(lines):
+        #     points = np.array(list(line.ls.coords))
+        #     flip = LineString(points.dot([[1, 0], [0, -1]]))
+        #     xs = [p[0] for p in list(flip.coords)]
+        #     ys = [p[1] for p in list(flip.coords)]
+        #     plt.plot(xs, ys, linewidth=3 if line.num == "double" else 1,
+        #              linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid", color='black')
+        #
+        # plt.show()

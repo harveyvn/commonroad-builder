@@ -87,9 +87,9 @@ class Analyzer:
             # Compute the white density from a pixel image
             total, points = 0, list()
             for p in coords:
-                points.append(p)
                 try:
                     total += int(img[p[1], p[0]])
+                    points.append(p)
                 except IndexError:
                     pass
 

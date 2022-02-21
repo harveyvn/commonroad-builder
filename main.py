@@ -453,19 +453,20 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
-    cli()
-    exit()
+    # cli()
+    # exit()
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
-    intersections = [100237, 103378, 117021]
-    for s in [128066]:
-        path = f'CIREN/4roads/{s}'
+    # intersections = [100237, 103378, 117021]
+    three_legs = [100271, 105203, 119489, 119839, 120013]
+    for s in three_legs:
+        path = f'CIREN/3roads/{s}'
 
         # Extract arrow direction
-        kernel = np.ones((2, 2))
-        img = cv2.imread(f'{path}/road.jpeg')
-        diff, cm = ArrowAnalyzer(kernel=kernel, img=img).run()
-        print(diff, cm)
+        # kernel = np.ones((2, 2))
+        # img = cv2.imread(f'{path}/road.jpeg')
+        # diff, cm = ArrowAnalyzer(kernel=kernel, img=img).run()
+        # print(diff, cm)
 
         # Extract road lanes
         roads, lane_nodes, road_lanes, ratio = extract_data_from_scenario(path)
@@ -477,13 +478,13 @@ if __name__ == '__main__':
         (image, baselines, segments) = lane_factory.run()
 
         lines = []
-        for segment in segments:
+        for i, segment in enumerate(segments):
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
             lane_dict = analyzer.search_laneline()
             lines = analyzer.categorize_laneline(lane_dict)
-            # analyzer.visualize()
+            analyzer.visualize()
             segment.generate_lanes(lines)
-            segment.get_bng_segment(0.4, True)
+            # segment.get_bng_segment(0.4, True)
 
         # segment = segments[1]
         # analyzer = Analyzer(image=image, lanelines=baselines, segment=segments[1])

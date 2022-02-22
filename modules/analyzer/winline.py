@@ -9,10 +9,13 @@ class Winline:
         self.points = points
         self.pattern = None
 
-        if zero_perc > CONST.MAX_PERCENTAGE_ZEROS_CONT and total > CONST.INVALID_LINE:
-            self.pattern = CONST.DASHED_INT
-        else:
-            self.pattern = CONST.SOLID_INT
+        if total > CONST.INVALID_LINE:
+            if zero_perc == 0.5:
+                self.pattern = CONST.DOTTED_INT
+            elif zero_perc > CONST.MAX_PERCENTAGE_ZEROS_CONT:
+                self.pattern = CONST.DASHED_INT
+            else:
+                self.pattern = CONST.SOLID_INT
 
         self.total = total
         self.zero_perc = zero_perc

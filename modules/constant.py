@@ -12,8 +12,10 @@ class Constant:
         self.MAX_PERCENTAGE_ZEROS_CONT = 0.29
         self.DASHED = "dashed"
         self.SOLID = "solid"
+        self.DOTTED = "dotted"
         self.DASHED_INT = 0
         self.SOLID_INT = 1
+        self.DOTTED_INT = 2
         self.SINGLE = "single"
         self.DOUBLE = "double"
         self.INVALID_LINE = -1

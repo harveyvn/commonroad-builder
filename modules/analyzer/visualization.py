@@ -14,7 +14,7 @@ class Visualization:
     def draw_img_with_baselines(self, ax, title):
         ax.title.set_text(title)
         ax.imshow(self.image, cmap='gray')
-        colors = ["red", "green", "blue", "purple"]
+        colors = ["red", "green", "blue", "purple", "orange"]
         for i, line in enumerate(self.lanelines):
             ax.plot([p[0] for p in line.coords],
                     [p[1] for p in line.coords],

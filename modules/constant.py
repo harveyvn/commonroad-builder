@@ -9,11 +9,13 @@ class Constant:
         self.DOUBLE_DASHED_LINE = 3
         self.CAR_LENGTH_SIM = 4.670000586694935
         self.MAX_PERCENTAGE_ZEROS = 0.9
-        self.MAX_PERCENTAGE_ZEROS_CONT = 0.29
+        self.MAX_PERCENTAGE_ZEROS_CONT = 0.2
         self.DASHED = "dashed"
         self.SOLID = "solid"
+        self.DOTTED = "dotted"
         self.DASHED_INT = 0
         self.SOLID_INT = 1
+        self.DOTTED_INT = 2
         self.SINGLE = "single"
         self.DOUBLE = "double"
         self.INVALID_LINE = -1

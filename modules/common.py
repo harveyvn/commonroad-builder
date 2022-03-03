@@ -213,3 +213,21 @@ def compare2lst_direction(line1, line2):
     if -1 <= cos_angle <= -0.89:
         return True
     return False
+
+
+def get_dbscan_labels(X, distance: int = 15, debug: bool = False):
+    from sklearn.cluster import DBSCAN
+    db = DBSCAN(eps=distance, min_samples=2).fit(X)
+    core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
+    core_samples_mask[db.core_sample_indices_] = True
+    labels = db.labels_
+    # Number of clusters in labels, ignoring noise if present.
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    n_noise_ = list(labels).count(-1)
+
+    if debug:
+        print(labels)
+        print("Estimated number of clusters: %d" % n_clusters_)
+        print("Estimated number of noise points: %d" % n_noise_)
+
+    return labels

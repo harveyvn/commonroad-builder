@@ -695,7 +695,7 @@ class Roads():
 
             # self.pre_process.showImage("distortion and mapping", road_image)
 
-        elif (len(large_contours) == 3 or len(large_contours) == 4):
+        elif (len(large_contours) == 3 or len(large_contours) == 4 or len(large_contours) == 5):
             ## Its T-Section road or two roads or lane with seperation
             print("\nT-Section road or Four way road")
             number_of_lanes = len(large_contours)

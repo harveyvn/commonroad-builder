@@ -9,7 +9,7 @@ from typing import List
 from shapely import affinity
 from shapely.geometry import Point, LineString
 from modules import slice_when, angle
-from modules.common import translate_ls_to_new_origin, reverse_geom, smooth_line
+from modules.common import translate_ls_to_new_origin, reverse_geom, smooth_line, get_dbscan_labels
 from modules.constant import CONST
 from modules.roadlane.laneline import Laneline
 from modules.models import Segment, Line
@@ -72,7 +72,7 @@ class Analyzer:
 
         return step, oor_lines
 
-    def find_lines(self, starting_x, num_points: int = 10):
+    def find_lines(self, starting_x, outlier_threshold, num_points: int = 10):
         good_lines, bad_lines = dict(), dict()
         first_x_valid, starting_color_index = -1, 0
         img, ls = self.rotated_img, self.rotated_ls
@@ -93,6 +93,15 @@ class Analyzer:
                 except IndexError:
                     pass
 
+            # Remove outliers from window line
+            if len(points) > 1 and outlier_threshold > 0:
+                fpoints = []
+                labels = get_dbscan_labels(X=points, distance=outlier_threshold)
+                for l, p in zip(labels, points):
+                    if l > -1:
+                        fpoints.append(p)
+                points = fpoints
+
             if total > 0:
                 length, non_zeros, zeros = analyze(points=points, img=img)
                 if zeros / length >= CONST.MAX_PERCENTAGE_ZEROS:
@@ -111,7 +120,7 @@ class Analyzer:
 
         return good_lines, bad_lines
 
-    def search_laneline(self, num_points: int = 10):
+    def search_laneline(self, num_points: int = 10, outlier_threshold: int = 15, debug: bool = False):
         """
         Search lane lines by defining a region within an image, then crop the region
         and measure the density of non-black pixels.
@@ -171,12 +180,13 @@ class Analyzer:
 
         # Find the starting valid x, so that the window line will not be out of range e.g. oor
         first_x, oor_lines = self.del_oor_lines()
-        good_lines, bad_lines = self.find_lines(starting_x=first_x, num_points=num_points)
+        good_lines, bad_lines = self.find_lines(starting_x=first_x, num_points=num_points, outlier_threshold=outlier_threshold)
 
         # Debug:
         # if len(oor_lines.keys()) > 0:
         #     bad_lines = [bad_lines.append(line) for line in oor_lines]
-        # self.visualization.draw_searching([], good_lines, self.rotated_img, True)
+        if debug:
+            self.visualization.draw_searching([], good_lines, self.rotated_img, True)
 
         viz_images["crop_img"] = crop_img
         viz_images["rotated_img"] = self.rotated_img

@@ -32,5 +32,13 @@ class BngSegement:
             render_stripe(ax, m, "yellow")
         return ax
 
+    def get_lines(self):
+        return {
+            "l": self.left.points,
+            "r": self.right.points,
+            "c": self.center.points,
+            "m": [m.points for m in self.marks]
+        }
+
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

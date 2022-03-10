@@ -24,7 +24,7 @@ class Segment:
         self.angle: float = 0
         self.is_horizontal = False
         self.is_vertical = False
-        self.bng_segment = None
+        self.bng_segment: BngSegement = None
         self.lines: [Line] = []
 
     def flip(self, height: float, debug: bool = False):

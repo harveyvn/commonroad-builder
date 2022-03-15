@@ -1,9 +1,12 @@
 import os
 import sys
+from typing import List
+
 import cv2
 import json
 import copy
 import click
+import pickle
 import platform
 import numpy as np
 import pandas as pd
@@ -20,7 +23,10 @@ from modules.crisce import extract_data_from_scenario, Vehicle
 from modules.roadlane import categorize_roadlane, refine_roadlanes
 from modules.analyzer import Analyzer
 from modules.arrow import ArrowAnalyzer
+from modules.common import pairs
 from modules.constant import CONST
+from modules.models import Segment, BngSegement
+from modules.wipe import Slash
 
 if platform.system() == CONST.WINDOWS:
     from modules.crisce.simulation import Simulation
@@ -212,19 +218,21 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             print(vh.color)
             print(vh.script)
 
+        print("==================================================")
+        print("==================================================\n\n")
+
         if road_lanes["road_type"] > 0:
             road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
         lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
         (image, baselines, segments) = lane_factory.run()
         for i, segment in enumerate(segments):
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
-            lane_dict = analyzer.search_laneline()
+            lane_dict = analyzer.search_laneline(num_points=12)
             segment.lines = analyzer.categorize_laneline(lane_dict)
             flipped_lines = segment.flip(image.shape[0])
             # analyzer.visualize()
             segment.get_bng_segment(flipped_lines, a_ratio)
 
-        # exit()
         def render_vehicle_trajectory(ax, vehicles):
             for v in vehicles:
                 xs = [p['x'] for p in v.script]
@@ -261,8 +269,18 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             ax[1][1] = segment.visualize(ax[1][1], flipped_lines, "Rotate the coordinates")
         ax[1][1].set_aspect("equal")
 
+        # Remove overlapping lines
+        original_lines = {}
         for i, segment in enumerate(segments):
-            ax[1][2] = segment.bng_segment.visualize(ax[1][2])
+            sm: Segment = segment
+            original_lines[i] = sm.bng_segment.get_lines()
+        slash = Slash(original_lines)
+        modified_lines = slash.simplify()
+
+        for i, segment in enumerate(segments):
+            bng_segment: BngSegement = segment.bng_segment
+            bng_segment.set_lines(modified_lines[i])
+            ax[1][2] = bng_segment.visualize(ax[1][2], show_center=False)
         ax[1][2].set_aspect("equal")
         ax[1][2].title.set_text("Final Road with Lane Marking")
 
@@ -453,76 +471,16 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
-    def draw(ax, points, color="red"):
-        xs = [p[0] for p in points]
-        ys = [p[1] for p in points]
-        ax.plot(xs, ys, linewidth=1, linestyle="solid", color=color)
-        return ax
-
-
-    def draw_poly(ax, p):
-        ax.plot(*p.exterior.xy)
-        return ax
-
-
-    def get_poly(lines):
-        l = LineString([[p[0], p[1]] for p in lines['l']])
-        r = LineString([[p[0], p[1]] for p in lines['r']])
-        return Polygon([*list(l.coords), *list(r.coords)[::-1]])
-
-
-    def where_it_is(line: LineString, point: Point):
-        first, last = line.boundary
-        aX, aY = first.x, first.y
-        bX, bY = last.x, last.y
-        cX, cY = point.x, point.y
-
-        val = ((bX - aX) * (cY - aY) - (bY - aY) * (cX - aX))
-        thresh = 1e-9
-        if val >= thresh:
-            return 0  # left
-        elif val <= -thresh:
-            return 1  # right
-        else:
-            return -1
-
-
-    def transform(lines: List, poly: Polygon):
-        for i, line in enumerate(lines):
-            ls_temp = LineString([[p[0], p[1]] for p in line])
-            lines[i] = ls_temp
-            if lines[i].intersects(poly):
-                merged = lines[i].intersection(poly)
-                lines[i] = lines[i].difference(merged)
-            try:
-                lines[i] = list(lines[i].coords)
-            except Exception as ex:
-                fig, ax = plt.subplots()
-                xs = [p[0] for p in lines[i].geoms[0].coords]
-                ys = [p[1] for p in lines[i].geoms[0].coords]
-                ax.plot(xs, ys, linewidth=1, linestyle="solid", color="red")
-                plt.show()
-                print(lines[i])
-                exit()
-        return lines
-
-    def collapse(sm: dict, poly: Polygon):
-        sm['l'] = transform([sm['l']], poly)[0]
-        sm['r'] = transform([sm['r']], poly)[0]
-        sm['m'] = transform(sm['m'], poly)
-        return sm
-
-    def length(ls):
-        return sum(hypot(x1 - x2, y1 - y2) for (x1, y1), (x2, y2) in zip(ls, ls[1:]))
-    # cli()
-    # exit()
+    cli()
+    exit()
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
     # intersections = [100237, 103378, 117021]
     # 119839 - num_points=20
+    # 128066 - num_points=12
     three_legs = [100271, 105203, 119489, 119839, 120013]
-    for s in [120013]:
-        path = f'CIREN/3roads/{s}'
+    for s in [128066]:
+        path = f'CIREN/4roads/{s}'
 
         # Extract arrow direction
         # kernel = np.ones((2, 2))
@@ -541,37 +499,11 @@ if __name__ == '__main__':
 
         lines = []
         for i, segment in enumerate(segments):
-            if i >= 0:
+            if i == 3:
                 analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
-                lane_dict = analyzer.search_laneline()
+                lane_dict = analyzer.search_laneline(num_points=12)
                 lines = analyzer.categorize_laneline(lane_dict)
                 analyzer.visualize()
                 segment.generate_lanes(lines)
-                for l in lines:
-                    print(l)
                 print("==")
             # segment.get_bng_segment(0.4, True)
-
-        # segment = segments[1]
-        # analyzer = Analyzer(image=image, lanelines=baselines, segment=segments[1])
-        # lane_dict = analyzer.search_laneline()
-        # lines = analyzer.categorize_laneline(lane_dict)
-        #
-        #
-        # from shapely.geometry import LineString
-        # for i, line in enumerate(lines):
-        #     points = np.array(list(line.ls.coords))
-        #     xs = [p[0] for p in points]
-        #     ys = [p[1] for p in points]
-        #     plt.plot(xs, ys, linewidth=3 if line.num == "double" else 1,
-        #              linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid")
-        #
-        # for i, line in enumerate(lines):
-        #     points = np.array(list(line.ls.coords))
-        #     flip = LineString(points.dot([[1, 0], [0, -1]]))
-        #     xs = [p[0] for p in list(flip.coords)]
-        #     ys = [p[1] for p in list(flip.coords)]
-        #     plt.plot(xs, ys, linewidth=3 if line.num == "double" else 1,
-        #              linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid", color='black')
-        #
-        # plt.show()

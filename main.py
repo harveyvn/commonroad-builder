@@ -20,6 +20,7 @@ from modules.crisce.car import Car
 from modules.crisce.kinematics import Kinematics
 from modules.crisce.common import visualize_crisce_sketch, visualize_crisce_simlanes
 from modules.crisce import extract_data_from_scenario, Vehicle
+
 from modules.roadlane import categorize_roadlane, refine_roadlanes
 from modules.analyzer import Analyzer
 from modules.arrow import ArrowAnalyzer
@@ -27,6 +28,8 @@ from modules.common import pairs
 from modules.constant import CONST
 from modules.models import Segment, BngSegement
 from modules.wipe import Slash
+from modules import DataHandler
+
 
 if platform.system() == CONST.WINDOWS:
     from modules.crisce.simulation import Simulation
@@ -241,12 +244,14 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                 ax.plot(xs, ys, c=c, marker="x")
             return ax
 
+        SKETCH_NAME = sketch.split('/')[2]
         print("==================================================")
         print("==================================================")
         print("==================================================")
         print("==================================================")
         plt.clf()
         fig, ax = plt.subplots(2, 3, figsize=(20, 12))
+        fig.suptitle(f'Case: {SKETCH_NAME}', fontsize=40)
         ax[0][0].imshow(image, cmap="gray", origin="lower")
         # ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
         ax[0][0].title.set_text("Road Sketch")
@@ -265,8 +270,9 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         ax[1][0].set_aspect("equal")
 
         for segment in segments:
-            flipped_lines = segment.flip(image.shape[0])
-            ax[1][1] = segment.visualize(ax[1][1], flipped_lines, "Rotate the coordinates")
+            sm: Segment = segment
+            flipped_lines = sm.flip(image.shape[0])
+            ax[1][1] = sm.visualize(ax[1][1], flipped_lines, "Rotate the coordinates")
         ax[1][1].set_aspect("equal")
 
         # Remove overlapping lines
@@ -274,8 +280,12 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         for i, segment in enumerate(segments):
             sm: Segment = segment
             original_lines[i] = sm.bng_segment.get_lines()
-        slash = Slash(original_lines)
-        modified_lines = slash.simplify()
+        try:
+            slash = Slash(original_lines)
+            modified_lines = slash.simplify()
+        except Exception as e:
+            print("Exception: ", e)
+            modified_lines = original_lines
 
         for i, segment in enumerate(segments):
             bng_segment: BngSegement = segment.bng_segment
@@ -292,6 +302,13 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         plt.show()
         print("==================================================")
         print("==================================================")
+
+        print("Data Export Handler")
+        dh = DataHandler(sketch_name=SKETCH_NAME, vehicles=vhs, roads=[sm.bng_segment for sm in segments])
+        dh.vehicles2json()
+        dh.roads2json()
+
+        fig.savefig(f'cases/{SKETCH_NAME}-visualization.png', bbox_inches="tight")
         exit()
 
         # Step 4: Generate the simulation
@@ -478,6 +495,8 @@ if __name__ == '__main__':
     # intersections = [100237, 103378, 117021]
     # 119839 - num_points=20
     # 128066 - num_points=12
+    # 108812 - outlier_threshold = 0
+    # 120305 - outlier_threshold = 0
     three_legs = [100271, 105203, 119489, 119839, 120013]
     for s in [128066]:
         path = f'CIREN/4roads/{s}'

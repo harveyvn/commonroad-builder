@@ -7,6 +7,7 @@ import numpy as np
 from typing import List
 import matplotlib.pyplot as plt
 import math
+import copy
 
 
 def reverse_geom(geom):
@@ -92,6 +93,12 @@ def angle(lineA, lineB):
     return ang_deg
 
 
+def angle_between(p1, p2):
+    ang1 = np.arctan2(*p1[::-1])
+    ang2 = np.arctan2(*p2[::-1])
+    return np.rad2deg((ang1 - ang2) % (2 * np.pi))
+
+
 def midpoint(p1: Point, p2: Point):
     return Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
 
@@ -171,6 +178,18 @@ def interpolate(coords: List, axis_idx: int, image: np.array):
         print("From Parallel interpolate")
         exit()
     return coords
+
+
+def is_straight_line(coords: List):
+    clone = copy.deepcopy(coords)
+    xs = [p[0] for p in clone]
+    ys = [p[1] for p in clone]
+    slope, intercept = np.polyfit(xs, ys, 1)
+    threshold = 0.003
+
+    print(abs(slope))
+
+    return False if abs(slope) > threshold else True
 
 
 def smooth_line(coords: List, debug: bool = False):

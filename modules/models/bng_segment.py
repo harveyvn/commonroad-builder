@@ -10,13 +10,12 @@ from .lib import generate, render_stripe
 
 class BngSegement:
     def __init__(self, left: Line, right: Line, center: Line, marks: List[Line],
-                 width: float, ratio: float, angle: float):
-        is_sml = True if (-5 < angle < 5) is False else False
+                 width: float, ratio: float):
 
-        self.left = Stripe(generate(left.ls, ratio, 0.1, is_sml), left.num, left.pattern)
-        self.right = Stripe(generate(right.ls, ratio, 0.1, is_sml), right.num, right.pattern)
-        self.center = Stripe(generate(center.ls, ratio, ratio * width, is_sml))
-        self.marks = [Stripe(generate(m.ls, ratio, 0.1, is_sml), m.num, m.pattern) for m in marks]
+        self.left = Stripe(generate(left.ls, ratio, 0.1), left.num, left.pattern)
+        self.right = Stripe(generate(right.ls, ratio, 0.1), right.num, right.pattern)
+        self.center = Stripe(generate(center.ls, ratio, ratio * width))
+        self.marks = [Stripe(generate(m.ls, ratio, 0.1), m.num, m.pattern) for m in marks]
         self.width = ratio * width
 
     def visualize(self, ax, show_center: bool = True):
@@ -50,3 +49,6 @@ class BngSegement:
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
+
+    def obj_dict(obj):
+        return obj.__dict__

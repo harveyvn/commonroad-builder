@@ -68,7 +68,7 @@ class Segment:
                 if (i == 0 or i == (len(lines) - 1)) is False:
                     marks.append(l)
 
-        bs = BngSegement(left, right, center, marks, width, ratio, self.angle)
+        bs = BngSegement(left, right, center, marks, width, ratio)
 
         if debug:
             plt.clf()

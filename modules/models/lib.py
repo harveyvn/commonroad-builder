@@ -1,11 +1,8 @@
-from modules.common import smooth_line
 from .stripe import Stripe
 
 
-def generate(lst, r, width, is_smooth_line):
+def generate(lst, r, width):
     coords = list(lst.coords)
-    if is_smooth_line:
-        coords = smooth_line(list(lst.coords))
     return [(p[0] * r, p[1] * r, 0, width) for p in coords]
 
 

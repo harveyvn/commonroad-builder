@@ -1,6 +1,6 @@
 from math import hypot
 from typing import List
-from shapely.geometry import Polygon, LineString, Point
+from shapely.geometry import Polygon, LineString, Point, MultiLineString
 import matplotlib.pyplot as plt
 
 
@@ -33,6 +33,17 @@ def transform(lines: List, poly: Polygon):
         if lines[i].intersects(poly):
             merged = lines[i].intersection(poly)
             lines[i] = lines[i].difference(merged)
+
+            if type(lines[i]) == MultiLineString:
+                longest_lst = None
+                max_points = 0
+                for lst in lines[i]:
+                    if len(list(lst.coords)) > max_points:
+                        max_points = len(list(lst.coords))
+                        longest_lst = lst
+                lines[i] = longest_lst
+
+            assert type(lines[i]) == LineString
         try:
             lines[i] = list(lines[i].coords)
         except Exception as ex:

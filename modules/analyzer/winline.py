@@ -10,7 +10,7 @@ class Winline:
         self.pattern = None
 
         if total > CONST.INVALID_LINE:
-            if 0.5 <= zero_perc <= 0.58:
+            if 0.4 <= zero_perc <= 0.6:
                 self.pattern = CONST.DOTTED_INT
             elif zero_perc <= CONST.MAX_PERCENTAGE_ZEROS_CONT:
                 self.pattern = CONST.SOLID_INT

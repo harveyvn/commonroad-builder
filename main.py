@@ -1,9 +1,12 @@
 import os
 import sys
+from typing import List
+
 import cv2
 import json
 import copy
 import click
+import pickle
 import platform
 import numpy as np
 import pandas as pd
@@ -17,10 +20,16 @@ from modules.crisce.car import Car
 from modules.crisce.kinematics import Kinematics
 from modules.crisce.common import visualize_crisce_sketch, visualize_crisce_simlanes
 from modules.crisce import extract_data_from_scenario, Vehicle
+
 from modules.roadlane import categorize_roadlane, refine_roadlanes
 from modules.analyzer import Analyzer
 from modules.arrow import ArrowAnalyzer
+from modules.common import pairs
 from modules.constant import CONST
+from modules.models import Segment, BngSegement
+from modules.wipe import Slash
+from modules import DataHandler
+
 
 if platform.system() == CONST.WINDOWS:
     from modules.crisce.simulation import Simulation
@@ -212,19 +221,21 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
             print(vh.color)
             print(vh.script)
 
+        print("==================================================")
+        print("==================================================\n\n")
+
         if road_lanes["road_type"] > 0:
             road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
         lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
         (image, baselines, segments) = lane_factory.run()
         for i, segment in enumerate(segments):
             analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
-            lane_dict = analyzer.search_laneline()
+            lane_dict = analyzer.search_laneline(num_points=12)
             segment.lines = analyzer.categorize_laneline(lane_dict)
             flipped_lines = segment.flip(image.shape[0])
             # analyzer.visualize()
             segment.get_bng_segment(flipped_lines, a_ratio)
 
-        # exit()
         def render_vehicle_trajectory(ax, vehicles):
             for v in vehicles:
                 xs = [p['x'] for p in v.script]
@@ -233,12 +244,14 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
                 ax.plot(xs, ys, c=c, marker="x")
             return ax
 
+        SKETCH_NAME = sketch.split('/')[2]
         print("==================================================")
         print("==================================================")
         print("==================================================")
         print("==================================================")
         plt.clf()
         fig, ax = plt.subplots(2, 3, figsize=(20, 12))
+        fig.suptitle(f'Case: {SKETCH_NAME}', fontsize=40)
         ax[0][0].imshow(image, cmap="gray", origin="lower")
         # ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
         ax[0][0].title.set_text("Road Sketch")
@@ -257,12 +270,27 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         ax[1][0].set_aspect("equal")
 
         for segment in segments:
-            flipped_lines = segment.flip(image.shape[0])
-            ax[1][1] = segment.visualize(ax[1][1], flipped_lines, "Rotate the coordinates")
+            sm: Segment = segment
+            flipped_lines = sm.flip(image.shape[0])
+            ax[1][1] = sm.visualize(ax[1][1], flipped_lines, "Rotate the coordinates")
         ax[1][1].set_aspect("equal")
 
+        # Remove overlapping lines
+        original_lines = {}
         for i, segment in enumerate(segments):
-            ax[1][2] = segment.bng_segment.visualize(ax[1][2])
+            sm: Segment = segment
+            original_lines[i] = sm.bng_segment.get_lines()
+        try:
+            slash = Slash(original_lines)
+            modified_lines = slash.simplify()
+        except Exception as e:
+            print("Exception: ", e)
+            modified_lines = original_lines
+
+        for i, segment in enumerate(segments):
+            bng_segment: BngSegement = segment.bng_segment
+            bng_segment.set_lines(modified_lines[i])
+            ax[1][2] = bng_segment.visualize(ax[1][2], show_center=False)
         ax[1][2].set_aspect("equal")
         ax[1][2].title.set_text("Final Road with Lane Marking")
 
@@ -274,6 +302,13 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
         plt.show()
         print("==================================================")
         print("==================================================")
+
+        print("Data Export Handler")
+        dh = DataHandler(sketch_name=SKETCH_NAME, vehicles=vhs, roads=[sm.bng_segment for sm in segments])
+        dh.vehicles2json()
+        dh.roads2json()
+
+        fig.savefig(f'cases/{SKETCH_NAME}-visualization.png', bbox_inches="tight")
         exit()
 
         # Step 4: Generate the simulation
@@ -453,15 +488,18 @@ def generate_lane_markings(road_lanes):
 
 # Execute the Command Line Interpreter
 if __name__ == '__main__':
-    # cli()
-    # exit()
+    cli()
+    exit()
     # single = [99817, 100343, 102804, 105165, 108812, 109176, 109536, 117692, 135859, 142845]
     # parallel = [100, 101, 105222, 119897, 128719, 171831]
     # intersections = [100237, 103378, 117021]
     # 119839 - num_points=20
+    # 128066 - num_points=12
+    # 108812 - outlier_threshold = 0
+    # 120305 - outlier_threshold = 0
     three_legs = [100271, 105203, 119489, 119839, 120013]
-    for s in [120013]:
-        path = f'CIREN/3roads/{s}'
+    for s in [128066]:
+        path = f'CIREN/4roads/{s}'
 
         # Extract arrow direction
         # kernel = np.ones((2, 2))
@@ -480,37 +518,11 @@ if __name__ == '__main__':
 
         lines = []
         for i, segment in enumerate(segments):
-            if i >= 0:
+            if i == 3:
                 analyzer = Analyzer(image=image, lanelines=baselines, segment=segment)
-                lane_dict = analyzer.search_laneline()
+                lane_dict = analyzer.search_laneline(num_points=12)
                 lines = analyzer.categorize_laneline(lane_dict)
                 analyzer.visualize()
                 segment.generate_lanes(lines)
-                for l in lines:
-                    print(l)
                 print("==")
             # segment.get_bng_segment(0.4, True)
-
-        # segment = segments[1]
-        # analyzer = Analyzer(image=image, lanelines=baselines, segment=segments[1])
-        # lane_dict = analyzer.search_laneline()
-        # lines = analyzer.categorize_laneline(lane_dict)
-        #
-        #
-        # from shapely.geometry import LineString
-        # for i, line in enumerate(lines):
-        #     points = np.array(list(line.ls.coords))
-        #     xs = [p[0] for p in points]
-        #     ys = [p[1] for p in points]
-        #     plt.plot(xs, ys, linewidth=3 if line.num == "double" else 1,
-        #              linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid")
-        #
-        # for i, line in enumerate(lines):
-        #     points = np.array(list(line.ls.coords))
-        #     flip = LineString(points.dot([[1, 0], [0, -1]]))
-        #     xs = [p[0] for p in list(flip.coords)]
-        #     ys = [p[1] for p in list(flip.coords)]
-        #     plt.plot(xs, ys, linewidth=3 if line.num == "double" else 1,
-        #              linestyle=(0, (5, 2)) if line.pattern == "dashed" else "solid", color='black')
-        #
-        # plt.show()

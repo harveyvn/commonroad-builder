@@ -311,11 +311,14 @@ def visualize_crisce_sketch(ax, width, points):
 def visualize_crisce_simlanes(ax, widths, points_list):
     for i, item in enumerate(widths):
         road_width = widths[i]
-        road_poly = LineString([(t[0], t[1]) for t in points_list[i]]).buffer(road_width / 2, cap_style=2, join_style=2)
-        road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
-        ax.add_patch(road_patch)
-        xs = [point[0] for point in points_list[i]]
-        ys = [point[1] for point in points_list[i]]
-        ax.plot(xs, ys, color='coral')
+        try:
+            road_poly = LineString([(t[0], t[1]) for t in points_list[i]]).buffer(road_width / 2, cap_style=2, join_style=2)
+            road_patch = PolygonPatch(road_poly, fc='gray', ec='dimgray')
+            ax.add_patch(road_patch)
+            xs = [point[0] for point in points_list[i]]
+            ys = [point[1] for point in points_list[i]]
+            ax.plot(xs, ys, color='coral')
+        except Exception as e:
+            pass
     ax.set_aspect('equal')
     return ax

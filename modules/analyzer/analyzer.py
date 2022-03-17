@@ -120,7 +120,7 @@ class Analyzer:
 
         return good_lines, bad_lines
 
-    def search_laneline(self, num_points: int = 10, outlier_threshold: int = 15, debug: bool = False):
+    def search_laneline(self, num_points: int = 10, outlier_threshold: int = 0, debug: bool = False):
         """
         Search lane lines by defining a region within an image, then crop the region
         and measure the density of non-black pixels.

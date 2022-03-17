@@ -24,7 +24,7 @@ class Segment:
         self.angle: float = 0
         self.is_horizontal = False
         self.is_vertical = False
-        self.bng_segment = None
+        self.bng_segment: BngSegement = None
         self.lines: [Line] = []
 
     def flip(self, height: float, debug: bool = False):
@@ -68,7 +68,7 @@ class Segment:
                 if (i == 0 or i == (len(lines) - 1)) is False:
                     marks.append(l)
 
-        bs = BngSegement(left, right, center, marks, width, ratio, self.angle)
+        bs = BngSegement(left, right, center, marks, width, ratio)
 
         if debug:
             plt.clf()

@@ -2,6 +2,8 @@ import json
 from typing import List
 from modules.models.bng_segment import BngSegement
 from modules.crisce.vehicle import Vehicle
+from modules.common import intersect
+from shapely.geometry import LineString
 
 
 class DataHandler:
@@ -12,7 +14,20 @@ class DataHandler:
 
     def vehicles2json(self):
         print("Number of vehicles: ", len(self.vehicles))
-        data = {"vehicles": [v.obj_dict() for v in self.vehicles]}
+
+        list_lst = []
+        intersection = []
+        for v in self.vehicles:
+            coords = [(p['x'], p['y']) for p in v.script]
+            if len(coords) == 1:
+                intersection = coords
+                break
+            list_lst.append(LineString(coords))
+
+        if len(intersection) == 0:
+            intersection = intersect(list_lst)
+
+        data = {"vehicles": [v.obj_dict() for v in self.vehicles], "crash_point": intersection}
         json_string = json.dumps(data)
 
         # Using a JSON string

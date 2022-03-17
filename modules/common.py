@@ -250,3 +250,11 @@ def get_dbscan_labels(X, distance: int = 15, debug: bool = False):
         print("Estimated number of noise points: %d" % n_noise_)
 
     return labels
+
+
+def intersect(list_lst: List[LineString]):
+    assert len(list_lst) == 2
+    first: LineString = list_lst[0]
+    last: LineString = list_lst[1]
+    point: Point = first.intersection(last)
+    return [point.x, point.y]

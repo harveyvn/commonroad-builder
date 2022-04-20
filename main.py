@@ -86,22 +86,15 @@ def cli(ctx, log_to, debug):
 @cli.command()
 @click.option('--accident-sketch', required=True, type=click.Path(exists=True), multiple=False,
               help="Input accident sketch for generating the simulation")
-@click.option('--dataset-name', required=True, type=click.Choice(['CIREN', 'SYNTH'], case_sensitive=False),
-              multiple=False,
-              help="Name of the dataset the accident comes from.")
 @click.option('--output-to', required=False, type=click.Path(exists=False), multiple=False,
               help="Folder to store outputs. It will created if not present. If omitted we use the accident folder.")
 @click.option('--beamng-home', required=False, type=click.Path(exists=True), multiple=False,
               help="Home folder of the BeamNG.research simulator")
 @click.option('--beamng-user', required=False, type=click.Path(exists=True), multiple=False,
               help="User folder of the BeamNG.research simulator")
-#
-# TODO This is not working right now, I suspect we need the CSV in any case !
-# @click.option('--validate', is_flag=True, default=False, show_default='Disabled',
-#              help="If activate a file named external.csv containing the expected impact must be provided in the accident folder."
-#                   "This file contains the data necerrary to validate the generated simulation")
+
 @click.pass_context
-def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, beamng_user=None):
+def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None):
     # Pass the context of the command down the line
     ctx.ensure_object(dict)
 
@@ -120,23 +113,17 @@ def generate(ctx, accident_sketch, dataset_name, output_to, beamng_home=None, be
 
         BLUE_CAR_BOUNDARY = np.array([[85, 50, 60],
                                       [160, 255, 255]])
-        if dataset_name == "SYNTH":
-            sketch_type_external = False
-            RED_CAR_BOUNDARY = np.array([[0, 200, 180],  # red internal crash sketches
-                                         [110, 255, 255]])
-            external_impact_points = None
-        else:
-            sketch_type_external = True
-            RED_CAR_BOUNDARY = np.array([[0, 190, 215],  # red external crash sketches
-                                         [179, 255, 255]])
-            external_csv = os.path.join(accident_sketch, "external.csv")
-            df = pd.read_csv(external_csv)
-            external_impact_points = dict()
-            for i in df.index:
-                color = str.lower(df.vehicle_color[i])
-                impact = str.lower(df.impact_point[i])
-                external_impact_points[color] = dict()
-                external_impact_points[color] = impact
+        sketch_type_external = True
+        RED_CAR_BOUNDARY = np.array([[0, 190, 215],  # red external crash sketches
+                                     [179, 255, 255]])
+        external_csv = os.path.join(accident_sketch, "external.csv")
+        df = pd.read_csv(external_csv)
+        external_impact_points = dict()
+        for i in df.index:
+            color = str.lower(df.vehicle_color[i])
+            impact = str.lower(df.impact_point[i])
+            external_impact_points[color] = dict()
+            external_impact_points[color] = impact
 
         output_folder = output_to if output_to is not None else os.path.join(accident_sketch, "output")
         if not os.path.exists(output_folder):

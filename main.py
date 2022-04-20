@@ -151,7 +151,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
 
         print("==================================================")
         print("==================================================")
-
+        print("EXTRACT VEHICLES INFORMATION")
         vhs = []
         for color in vehicles:
             color_code = CONST.RED_RGBA
@@ -173,14 +173,27 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                 spheres=vehicle["trajectories"]["spheres"]
             )
             vhs.append(vh)
-            print(vh.color)
-            print(vh.script)
+            # print(vh.color)
+            # print(vh.script)
+
+        print("==================================================")
+        print("==================================================\n\n")
+
+        print("==================================================")
+        print("==================================================")
+        print("EXTRACT ARROW INFORMATION")
+
+        # Extract arrow direction
+        kernel = np.ones((2, 2))
+        img = cv2.imread(road_image_path)
+        diff, cm = ArrowAnalyzer(kernel=kernel, img=img).run()
 
         print("==================================================")
         print("==================================================\n\n")
 
         if road_lanes["road_type"] > 0:
             road_lanes = refine_roadlanes(copy.deepcopy(road_lanes))
+
         lane_factory = categorize_roadlane(copy.deepcopy(road_lanes))
         (image, baselines, segments) = lane_factory.run()
         for i, segment in enumerate(segments):
@@ -259,173 +272,13 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
         print("==================================================")
 
         print("Data Export Handler")
-        dh = DataHandler(sketch_name=SKETCH_NAME, vehicles=vhs, roads=[sm.bng_segment for sm in segments])
-        dh.vehicles2json()
-        dh.roads2json()
+        dh = DataHandler(sketch_name=SKETCH_NAME,
+                         vehicles=vhs,
+                         roads=[sm.bng_segment for sm in segments],
+                         rot_deg=diff)
+        dh.to_json()
 
         fig.savefig(f'cases/{SKETCH_NAME}-visualization.png', bbox_inches="tight")
-        exit()
-
-        # Step 4: Generate the simulation
-        simulation_folder = os.path.join(output_folder, "simulation/")
-        if not os.path.exists(simulation_folder):
-            os.makedirs(simulation_folder)
-
-        simulation = Simulation(vehicles=vehicles, roads=roads,
-                                lane_nodes=lane_nodes, kinematics=kinematics,
-                                time_efficiency=time_efficiency, output_folder=simulation_folder,
-                                car_length=car_length, car_width=car_width,
-                                car_length_sim=CONST.CAR_LENGTH_SIM, sketch_type_external=sketch_type_external,
-                                height=height, width=width,
-                                crash_impact_model=CONST.CRISCE_IMPACT_MODEL,
-                                sampling_frequency=5,
-                                road_lanes=road_lanes)
-
-        logger.info("Generation Ends")
-
-        # Step 5: Execute the simulation on BeamNG.research
-        sketch_id = os.path.basename(os.path.dirname(sketch_image_path))
-        logger.info(f"Execution of sketch {sketch_id} Starts")
-
-        simulation.bng, simulation.scenario = simulation.setupBeamngSimulation(sketch_id, beamng_port=64257,
-                                                                               beamng_home=beamng_home,
-                                                                               beamng_user=beamng_user,
-                                                                               vehicles=vhs,
-                                                                               segments=segments)
-        # Make sure user sees the crash from the above
-        simulation.aerialViewCamera()
-
-        ###### ------ Plotting Roads ---------- ##########
-        fig = plt.figure(figsize=(30, 20))
-
-        # Must be called while the simulation runs...
-        simulation.plot_road(plt.gca())
-        plt.gca().set_aspect("equal")
-        # plt.axis('off')
-        plt.axis(False)
-        plt.gca().invert_yaxis()
-        plt.gca().invert_xaxis()
-        # plt.show()
-        plt.savefig(simulation.output_folder + '{}_sim_plot_road.jpg'.format(simulation.process_number),
-                    bbox_inches='tight')
-        simulation.process_number += 1
-        # fig.savefig(simulation.output_folder + ".jpg", bbox_inches='tight')
-        plt.close()
-
-        # This also requires the road, so cannot be called before the end of the simulation
-        simulation.plotSimulationCrashSketch()
-        simulation.initiateDrive(vhs)
-        exit()
-
-        logger.info("Execution Ends")
-
-        ############   Reporting  ###############
-
-        logger.info("Reporting Starts")
-
-        simulation.postCrashDamage()
-
-        for vehicle_color in vehicles:
-            ref_impact_side = vehicles[vehicle_color]["impact_point_details"]["internal_impact_side"]
-            print(vehicle_color, ref_impact_side)
-
-        simulation.effectAndAccurayOfSimulation()
-
-        road_similarity = simulation.computeRoadGeometricSimilarity()
-        placement_similarity, orientation_similarity = simulation.computeVehiclesSimilarity()
-        simulation.computeBboxTrajectory(image.copy(), show_image=show_image)
-
-        simulation_accuracy = simulation.computeSimulationAccuracy(road_similarity, placement_similarity,
-                                                                   orientation_similarity)
-
-        total_time = simulation.computeCrisceEfficiency()
-        simulation.plotCrisceEfficiency(total_time)
-        simulation.traceVehicleBbox()
-
-        analysis_log_df = pd.DataFrame([[simulation.log["simulated_impact"], simulation.log["road_similarity"],
-                                         simulation.log["placement_similarity"],
-                                         simulation.log["orientation_similarity"],
-                                         simulation.log["quality_of_env"], simulation.log["red_side_match"],
-                                         simulation.log["blue_side_match"], simulation.log["quality_of_crash"],
-                                         simulation.log["red_cum_iou"], simulation.log["blue_cum_iou"],
-                                         simulation.log["quality_of_traj"],
-                                         {"red": simulation.log["vehicles"]["red"]["crash_veh_disp_error"],
-                                          "blue": simulation.log["vehicles"]["blue"]["crash_veh_disp_error"]},
-                                         {"red": simulation.log["vehicles"]["red"]["crash_veh_IOU"],
-                                          "blue": simulation.log["vehicles"]["blue"]["crash_veh_IOU"]},
-                                         simulation.log["simulation_accuracy"],
-                                         simulation.log["total_time"]]],
-                                       index=[sketch],
-                                       columns=['simulated_impact', 'road_similarity', 'placement_similarity',
-                                                'orientation_similarity', "quality_of_environment",
-                                                "red_side_match", "blue_side_match", "quality_of_crash",
-                                                "red_cum_iou", "blue_cum_iou", "quality_of_trajectory",
-                                                "crash_veh_disp_error", "crash_veh_IOU",
-                                                'simulation_accuracy', 'total_time'])
-
-        index_value = analysis_log_df.index.values
-        # print("index values", p)
-        analysis_log_df.insert(0, column="file_name", value=index_value)
-        analysis_log_df.reset_index(drop=True, inplace=True)
-
-        for v_color in vehicles:
-            vehicles[v_color]["trajectories"]["computed"]["bezier_curve"] = [waypoint.tolist()
-                                                                             for waypoint in
-                                                                             vehicles[v_color]["trajectories"][
-                                                                                 "computed"][
-                                                                                 "bezier_curve"]]
-            vehicles[v_color]["trajectories"]["computed"]["b_spline"] = [waypoint.tolist()
-                                                                         for waypoint in
-                                                                         vehicles[v_color]["trajectories"]["computed"][
-                                                                             "b_spline"]]
-            vehicles[v_color]["trajectories"]["computed"]["cubic_spline"] = [waypoint.tolist()
-                                                                             for waypoint in
-                                                                             vehicles[v_color]["trajectories"][
-                                                                                 "computed"][
-                                                                                 "cubic_spline"]]
-            vehicles[v_color]["trajectories"]["original_trajectory"] = [waypoint.tolist()
-                                                                        for waypoint in
-                                                                        vehicles[v_color]["trajectories"][
-                                                                            "original_trajectory"]]
-            vehicles[v_color]["trajectories"]["distorted_trajectory"] = [waypoint.tolist()
-                                                                         for waypoint in
-                                                                         vehicles[v_color]["trajectories"][
-                                                                             "distorted_trajectory"]]
-            vehicles[v_color]["trajectories"]["simulation_trajectory"] = [waypoint.tolist()
-                                                                          for waypoint in
-                                                                          vehicles[v_color]["trajectories"][
-                                                                              "simulation_trajectory"]]
-
-        log = {"vehicles": vehicles,
-               "vehicle_crash_specifics": simulation.log["vehicles"],
-               "simulation_trajectory": {
-                   "red": simulation.crash_analysis_log["vehicles"]["red"]["simulation_trajectory"],
-                   "blue": simulation.crash_analysis_log["vehicles"]["blue"][
-                       "simulation_trajectory"]},
-               "simulation_rotations": {"red": simulation.crash_analysis_log["vehicles"]["red"]["rotations"],
-                                        "blue": simulation.crash_analysis_log["vehicles"]["blue"]["rotations"]},
-               "sim_veh_speed": {"red": simulation.crash_analysis_log["vehicles"]["red"]["wheel_speed"],
-                                 "blue": simulation.crash_analysis_log["vehicles"]["blue"]["wheel_speed"]},
-               "sim_time": {"red": simulation.crash_analysis_log["vehicles"]["red"]["sim_time"],
-                            "blue": simulation.crash_analysis_log["vehicles"]["blue"]["sim_time"]},
-               "simulated_impact": simulation.log["simulated_impact"],
-               "road_similarity": simulation.log["road_similarity"],
-               "placement_similarity": simulation.log["placement_similarity"],
-               "orientation_similarity": simulation.log["orientation_similarity"],
-               "quality_of_env": simulation.log["quality_of_env"], "red_side_match": simulation.log["red_side_match"],
-               "blue_side_match": simulation.log["blue_side_match"],
-               "quality_of_crash": simulation.log["quality_of_crash"],
-               "red_cum_iou": simulation.log["red_cum_iou"], "blue_cum_iou": simulation.log["blue_cum_iou"],
-               "quality_of_traj": simulation.log["quality_of_traj"],
-               "crash_disp_error": {"red": simulation.log["vehicles"]["red"]["crash_veh_disp_error"],
-                                    "blue": simulation.log["vehicles"]["blue"]["crash_veh_disp_error"]},
-               "crash_IOU": {"red": simulation.log["vehicles"]["red"]["crash_veh_IOU"],
-                             "blue": simulation.log["vehicles"]["blue"]["crash_veh_IOU"]},
-               "simulation_accuracy": simulation.log["simulation_accuracy"],
-               "total_time": simulation.log["total_time"]}
-
-        with open(os.path.join(output_folder, "summary.json"), 'w') as fp:
-            json.dump(log, fp, indent=1)
     finally:
         pass
 

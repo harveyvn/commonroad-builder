@@ -101,6 +101,7 @@ class ArrowLib:
         cm = None
         if 0 <= diff < 10:
             cm = "0 deg Ox - right"
+            diff = -90
         if 170 < diff <= 180:
             cm = "180 deg Ox - left"
         if 85 <= diff <= 90:
@@ -110,6 +111,7 @@ class ArrowLib:
                 cm = "0 deg Oy - down"
             if 170 < diff <= 180:
                 cm = "180 deg Oy - up"
+                diff = 0
 
         if cm is None:
             cm = f'deg Ox'

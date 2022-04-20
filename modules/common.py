@@ -257,4 +257,6 @@ def intersect(list_lst: List[LineString]):
     first: LineString = list_lst[0]
     last: LineString = list_lst[1]
     point: Point = first.intersection(last)
+    if point.is_empty:
+        return []
     return [point.x, point.y]

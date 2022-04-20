@@ -7,10 +7,11 @@ from shapely.geometry import LineString
 
 
 class DataHandler:
-    def __init__(self, vehicles: List[Vehicle], roads: List[BngSegement], sketch_name: str):
+    def __init__(self, vehicles: List[Vehicle], roads: List[BngSegement], sketch_name: str, rot_deg: int):
         self.vehicles = vehicles
         self.roads = roads
         self.sketch_name = sketch_name
+        self.rot_deg = rot_deg
 
     def vehicles2json(self):
         print("Number of vehicles: ", len(self.vehicles))
@@ -27,18 +28,36 @@ class DataHandler:
         if len(intersection) == 0:
             intersection = intersect(list_lst)
 
-        data = {"vehicles": [v.obj_dict() for v in self.vehicles], "crash_point": intersection}
-        json_string = json.dumps(data)
-
-        # Using a JSON string
-        with open(f'cases/{self.sketch_name}-vehicles.json', 'w') as outfile:
-            outfile.write(json_string)
+        return [v.obj_dict() for v in self.vehicles], intersection
 
     def roads2json(self):
         print("Number of roads: ", len(self.roads))
-        # data = {"roads": [r for r in self.roads]}
-        # json_string = json.dumps(data)
-        #
-        # # Using a JSON string
-        # with open(f'cases/{self.sketch_name}-roads.json', 'w') as outfile:
-        #     outfile.write(json_string)
+
+        roads = {}
+        for i, road in enumerate(self.roads):
+            roads[i] = {
+                "left": road.left.__dict__,
+                "center": road.center.__dict__,
+                "right": road.right.__dict__,
+                "marks": [m.__dict__ for m in road.marks],
+                "width": road.width,
+            }
+
+        return roads
+
+    def to_json(self):
+        vehicles, crash_point = self.vehicles2json()
+        roads = self.roads2json()
+
+        data = {
+            "roads": roads,
+            "vehicles": vehicles,
+            "crash_point": crash_point,
+            "rot_deg": self.rot_deg
+        }
+
+        json_string = json.dumps(data)
+
+        # Using a JSON string
+        with open(f'cases/{self.sketch_name}-data.json', 'w') as outfile:
+            outfile.write(json_string)

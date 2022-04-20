@@ -72,8 +72,10 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
             sketch = os.path.join(accident_sketch, "sketch.jpg")
 
         road = os.path.join(accident_sketch, "road.jpeg")
+        road_arrow = os.path.join(accident_sketch, "road_arrow.jpeg")
         if not os.path.exists(road):
             road = os.path.join(accident_sketch, "road.jpg")
+            road_arrow = os.path.join(accident_sketch, "road_arrow.jpg")
 
         ############   Setup  ###############
         # Additional controls
@@ -114,6 +116,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
 
         sketch_image_path = sketch
         road_image_path = road
+        road_arrow_image_path = road_arrow
 
         #### ------ Read Sketch Image ------ #######
 
@@ -183,9 +186,14 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
         print("==================================================")
         print("EXTRACT ARROW INFORMATION")
 
+        diff = 0
         # Extract arrow direction
         kernel = np.ones((2, 2))
-        img = cv2.imread(road_image_path)
+        if os.path.exists(road_arrow_image_path):
+            img = cv2.imread(road_arrow_image_path)
+        else:
+            img = cv2.imread(road_image_path)
+
         diff, cm = ArrowAnalyzer(kernel=kernel, img=img).run()
 
         print("==================================================")
@@ -219,7 +227,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
         print("==================================================")
         plt.clf()
         fig, ax = plt.subplots(2, 3, figsize=(20, 12))
-        fig.suptitle(f'Case: {SKETCH_NAME}', fontsize=40)
+        fig.suptitle(f'Case: {SKETCH_NAME} - Arrow: {diff}', fontsize=40)
         ax[0][0].imshow(image, cmap="gray", origin="lower")
         # ax[0][0] = visualize_crisce_sketch(ax[0][0], roads["sketch_lane_width"][0], roads["large_lane_midpoints"])
         ax[0][0].title.set_text("Road Sketch")

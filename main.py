@@ -37,37 +37,8 @@ if platform.system() == CONST.WINDOWS:
 # Ensure PythonRobotics modules are included
 root_folder = Path(Path(Path(__file__).parent).parent).absolute()
 sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "BezierPath"))
-# TODO REMOVE THOSE!
 sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "CubicSpline"))
 sys.path.append(os.path.join(root_folder, "PythonRobotics", "PathPlanning", "BSplinePath"))
-
-
-def setup_logging(log_to, debug):
-    def log_exception(extype, value, trace):
-        logger.exception('Uncaught exception:', exc_info=(extype, value, trace))
-
-    # Disable annoyng messages from matplot lib.
-    # See: https://stackoverflow.com/questions/56618739/matplotlib-throws-warning-message-because-of-findfont-python
-    logger.getLogger('matplotlib.font_manager').disabled = True
-    # Disable annoyng messages from Pillow lib.
-    logger.getLogger('PIL').setLevel(logger.WARNING)
-
-    term_handler = logger.StreamHandler()
-    log_handlers = [term_handler]
-    start_msg = "Process Started"
-
-    if log_to is not None:
-        file_handler = logger.FileHandler(log_to, 'a', 'utf-8')
-        log_handlers.append(file_handler)
-        start_msg += " ".join(["writing to file: ", str(log_to)])
-
-    log_level = logger.DEBUG if debug else logger.INFO
-
-    logger.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=log_level, handlers=log_handlers)
-
-    sys.excepthook = log_exception
-
-    logger.info(start_msg)
 
 
 @click.group()
@@ -79,9 +50,6 @@ def setup_logging(log_to, debug):
 def cli(ctx, log_to, debug):
     # Pass the context of the command down the line
     ctx.ensure_object(dict)
-    # Setup logging
-    setup_logging(log_to, debug)
-
 
 @cli.command()
 @click.option('--accident-sketch', required=True, type=click.Path(exists=True), multiple=False,
@@ -460,17 +428,6 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
             json.dump(log, fp, indent=1)
     finally:
         pass
-
-
-def generate_lane_markings(road_lanes):
-    lane_factory = categorize_roadlane(road_lanes)
-    (image, baselines, roads) = lane_factory.run()
-    for road in roads:
-        analyzer = Analyzer(image=image, lanelines=baselines, road=road)
-        lane_dict = analyzer.search_laneline()
-        analyzer.categorize_laneline(lane_dict)
-        road.generate_lanes()
-    return roads
 
 
 # Execute the Command Line Interpreter

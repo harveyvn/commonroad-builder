@@ -34,15 +34,16 @@ class DataHandler:
     def roads2json(self):
         print("Number of roads: ", len(self.roads))
 
-        roads = {}
+        roads = []
         for i, road in enumerate(self.roads):
-            roads[i] = {
+            item = {
                 "left": road.left.__dict__,
                 "center": road.center.__dict__,
                 "right": road.right.__dict__,
                 "marks": [m.__dict__ for m in road.marks],
                 "width": road.width,
             }
+            roads.append(item)
 
         return roads
 
@@ -64,3 +65,4 @@ class DataHandler:
         pathlib.Path(f'outputs/{self.sketch_name}/').mkdir(parents=True, exist_ok=True)
         with open(f'outputs/{self.sketch_name}/data.json', 'w') as outfile:
             outfile.write(json_string)
+        print(f'Output is written to outputs/{self.sketch_name}/ !')

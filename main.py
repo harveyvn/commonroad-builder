@@ -291,7 +291,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                          rot_deg=diff)
         dh.to_json()
 
-        fig.savefig(f'cases/{SKETCH_NAME}-visualization.png', bbox_inches="tight")
+        fig.savefig(f'outputs/{SKETCH_NAME}/viz.png', bbox_inches="tight")
     finally:
         pass
 

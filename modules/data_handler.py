@@ -1,5 +1,6 @@
 import json
 from typing import List
+import pathlib
 from modules.models.bng_segment import BngSegement
 from modules.crisce.vehicle import Vehicle
 from modules.common import intersect
@@ -56,8 +57,10 @@ class DataHandler:
             "rot_deg": self.rot_deg
         }
 
+        # Using a JSON string
         json_string = json.dumps(data)
 
-        # Using a JSON string
-        with open(f'cases/{self.sketch_name}-data.json', 'w') as outfile:
+        # Create a folder and filename
+        pathlib.Path(f'outputs/{self.sketch_name}/').mkdir(parents=True, exist_ok=True)
+        with open(f'outputs/{self.sketch_name}/data.json', 'w') as outfile:
             outfile.write(json_string)

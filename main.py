@@ -220,7 +220,12 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                 ax.plot(xs, ys, c=c, marker="x")
             return ax
 
-        SKETCH_NAME = sketch.split('/')[2]
+        try:
+            SKETCH_NAME = sketch.split('/')[2]
+        except Exception as ex:
+            SKETCH_NAME = ""
+        if platform.system() == CONST.WINDOWS:
+            SKETCH_NAME = sketch.split('\\')[2]
         print("==================================================")
         print("==================================================")
         print("==================================================")

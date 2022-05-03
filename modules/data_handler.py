@@ -52,6 +52,7 @@ class DataHandler:
         roads = self.roads2json()
 
         data = {
+            "name": self.sketch_name,
             "roads": roads,
             "vehicles": vehicles,
             "crash_point": crash_point,

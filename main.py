@@ -175,6 +175,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                 debug_script=vehicle["trajectories"]["debug_trajectory"],
                 spheres=vehicle["trajectories"]["spheres"]
             )
+            vh.set_speed()
             vhs.append(vh)
             # print(vh.color)
             # print(vh.script)

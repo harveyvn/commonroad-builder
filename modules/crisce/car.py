@@ -100,17 +100,17 @@ class Car():
         vehicle_info = "vehicle_info"
         
         t0 = time.time()
-        print("\n-------  Vehicle Extraction Pipeline    ------")
-        print("\n-------  Extracting Geometric Information of vehicles   ------")
+        # print("\n-------  Vehicle Extraction Pipeline    ------")
+        # print("\n-------  Extracting Geometric Information of vehicles   ------")
         for vehicle_color in self.vehicles:
-            print("\n{} Vehicle \n".format(str.capitalize((vehicle_color))))
+            # print("\n{} Vehicle \n".format(str.capitalize((vehicle_color))))
             self.vehicles[vehicle_color][vehicle_info] = dict()
             count_id = 0
             for i, contour in enumerate(self.vehicles[vehicle_color]["contour"]):
                 # print ("Vehicle  {} # {},  Shape = {},  Area = {},  Arc_Length = {} ".format(vehicle_color, i, contour.shape, 
                 #                                                                              cv2.contourArea(contour), cv2.arcLength(contour, closed=False)))
-                print ("Vehicle  {} # {},  Area = {},  Arc_Length = {} ".format(vehicle_color, i, 
-                                                                                cv2.contourArea(contour), cv2.arcLength(contour, closed=False)))
+                # print ("Vehicle  {} # {},  Area = {},  Arc_Length = {} ".format(vehicle_color, i,
+                #                                                                cv2.contourArea(contour), cv2.arcLength(contour, closed=False)))
 
                 
                 if cv2.contourArea(contour) > 60:
@@ -204,9 +204,9 @@ class Car():
             
         t1 = time.time()
         
-        print("\n---- Dimensions of Vehicles -------\n")
-        print("car_length = ", self.car_length)
-        print("car_width  = ", self.car_width)
+        # print("\n---- Dimensions of Vehicles -------\n")
+        # print("car_length = ", self.car_length)
+        # print("car_width  = ", self.car_width)
         
         if self.show_image:
             self.pre_process.showImage("Axis Aligned Bounding Boxes Vs Oriented Bounding Boxes", np.hstack([temp_img, img]), time=800)
@@ -342,9 +342,9 @@ class Car():
 
     def extractingAnglesForVehicles(self, image, time_efficiency):
         t0 = time.time()
-        print("\n-------- Extracting Angle of Vehicles -------\n")
+        # print("\n-------- Extracting Angle of Vehicles -------\n")
         for vehicle_color in self.vehicles:
-            print("{} Vehicle".format(str.capitalize(vehicle_color)))
+            # print("{} Vehicle".format(str.capitalize(vehicle_color)))
             for vehicle_id in self.vehicles[vehicle_color]["vehicle_info"]:
                 points_along_width = np.asarray(self.vehicles[vehicle_color]["vehicle_info"][vehicle_id]["nodes_on_width"], np.int32)
                 box = self.vehicles[vehicle_color]["vehicle_info"][vehicle_id]["vehicle_nodes"][:4]
@@ -395,7 +395,7 @@ class Car():
     def settingVehiclesInfo(self, v_color, vehicle_dist_pivot):
         del self.vehicles[v_color]["vehicle_info"]
         self.vehicles[v_color]["vehicle_info"] = dict()
-        print("\n Arranging the snapshots for {} vehicle in order".format(v_color))
+        # print("\n Arranging the snapshots for {} vehicle in order".format(v_color))
         for v_id in range(len(vehicle_dist_pivot)):
             # print("vehicle number =", v_id)
             self.vehicles[v_color]["vehicle_info"][str(v_id)] = vehicle_dist_pivot[int(v_id)][2]
@@ -423,7 +423,7 @@ class Car():
             # print(side_results)
             # print("vehicle's angle exist on the projected side", side_name, "= ", round(veh_angle) in side_results)
             if round(veh_angle) in side_results:
-                print("V{} is oriented towards the projected side = {}".format(v_id, side_name))
+                # print("V{} is oriented towards the projected side = {}".format(v_id, side_name))
                 oriented_vehicles.append(v_id)
                 orient_count += 1
         return orient_count, oriented_vehicles
@@ -439,8 +439,8 @@ class Car():
             Dx_max =  cv2.norm(np.array(waypoint_of_vehicle) - np.array([self.width, waypoint_of_vehicle[1]]), cv2.NORM_L2) ## Right
             self.vehicles[v_color]["vehicle_info"][v_id]["distance_from_boundary"] = min([(Dy_min, "top"), (Dx_min, "left"), (Dy_max, "bottom"), (Dx_max, "right")])
             side_dist_calc.append(self.vehicles[v_color]["vehicle_info"][v_id]["distance_from_boundary"])
-            print("V{},  min distance from sketch boundary  = {}".format(v_id , self.vehicles[v_color]["vehicle_info"][v_id]["distance_from_boundary"]))
-        print("V{} has the least distance from sketch boundary".format(side_dist_calc.index(min(side_dist_calc))))
+            # print("V{},  min distance from sketch boundary  = {}".format(v_id , self.vehicles[v_color]["vehicle_info"][v_id]["distance_from_boundary"]))
+        # print("V{} has the least distance from sketch boundary".format(side_dist_calc.index(min(side_dist_calc))))
         least_distant = str(side_dist_calc.index(min(side_dist_calc)))
         self.vehicles[v_color]["least_distant_vehicle"] = self.vehicles[v_color]["vehicle_info"][least_distant]
         
@@ -520,11 +520,11 @@ class Car():
 
         t0 = time.time()
         
-        print("\n--------- Extracting the Sequence of Movements of vehicles ----------")
+        # print("\n--------- Extracting the Sequence of Movements of vehicles ----------")
         
         for v_color in self.vehicles:
             vehicle_dist_pivot = list()
-            print("\n------ {} Vehicle -----".format(str.capitalize(v_color)))
+            # print("\n------ {} Vehicle -----".format(str.capitalize(v_color)))
             ### Least distant vehicle from the frame of the image
             least_distant, side_dist_calc = self.extractLeastDistanceVehicle(v_color)
             # print("side_dist_calc", side_dist_calc)
@@ -538,8 +538,8 @@ class Car():
             ## last vehicles projected side snapshot count is greater than the second last vehicle, if not then switch to distance based calculation. 
             if veh_proj_counts[-1][0] > veh_proj_counts[-2][0]: 
                 veh_proj_side   = vehicles_projection[vehicles_projection[:, 0].argsort()][-1][1]
-                print("Final Projected Side = ", veh_proj_side)
-                print("oriented vehicles", vehicles_projection) 
+                # print("Final Projected Side = ", veh_proj_side)
+                # print("oriented vehicles", vehicles_projection)
                 # proj_dist_veh = np.array(self.extractSideDistanceOfVehicles(
                 #     v_color, veh_proj_side, vehicles_projection[vehicles_projection[:, 0].argsort()][-1][2]))
                 proj_dist_veh   = np.array(self.extractSideDistanceOfVehicles(v_color, veh_proj_side, True))
@@ -549,8 +549,8 @@ class Car():
                 proj_dist_veh   = np.array(self.extractSideDistanceOfVehicles(v_color, veh_proj_side, False))
                 proj_dist_veh   = proj_dist_veh[proj_dist_veh[:, 0].argsort()] #[::-1]
             
-            print([proj_dist_veh[:,:2]])
-            print("Starting Vehicle Index (ID) = ", proj_dist_veh[0][1])
+            # print([proj_dist_veh[:,:2]])
+            # print("Starting Vehicle Index (ID) = ", proj_dist_veh[0][1])
             start_veh_id = proj_dist_veh[0][1] # proj_dist_veh[-1][1]
             self.vehicles[v_color]["initial_vehicle"] = self.vehicles[v_color]["vehicle_info"][start_veh_id]
             init_veh_center = self.vehicles[v_color]["initial_vehicle"]['center_of_car']
@@ -722,7 +722,7 @@ class Car():
         # impact_points = list()
         t0 = time.time()
         for i, vehicle_color in enumerate(self.vehicles):
-            print("\n------- Proposed Crash Impact Point on the {} Vehicle ------".format(str.capitalize(vehicle_color)))
+            # print("\n------- Proposed Crash Impact Point on the {} Vehicle ------".format(str.capitalize(vehicle_color)))
             self.vehicles[vehicle_color]["impact_point_details"] = dict()
             min_dist = self.vehicles[vehicle_color]["crash_point"]["dist_to_vehicle"]
             impact_points = {0 : "front_left", 1: "front_left_mid", 2: "left_mid", 
@@ -749,10 +749,10 @@ class Car():
                     vehicle_side_coord  = oriented_nodes_values[int(first_impact_side[1])]
                     # print("\n")
                     # print(str.capitalize(vehicle_color), "Vehicle")
-                    print("Snapshot of vehicle  = ", vehicle_vid)
-                    print("Minimum distance from crash point to vehicle = {} pixels".format(min_dist))
-                    print("Vehicle impact side internal annotation  = ", vehicle_impact_side)
-                    print("Vehicle second nearest impact side       = ", second_impact_side)
+                    # print("Snapshot of vehicle  = ", vehicle_vid)
+                    # print("Minimum distance from crash point to vehicle = {} pixels".format(min_dist))
+                    # print("Vehicle impact side internal annotation  = ", vehicle_impact_side)
+                    # print("Vehicle second nearest impact side       = ", second_impact_side)
                     
                     ### Adjustment to the internal annotator sides
                     if vehicle_impact_side == 'front_left_mid':
@@ -787,15 +787,15 @@ class Car():
                     self.vehicles[vehicle_color]["impact_point_details"]["internal_impact_side"] = vehicle_impact_side
                     if external:
                         self.vehicles[vehicle_color]["impact_point_details"]["external_impact_side"] = external_impact_points[vehicle_color]
-                        print("Vehicle impact side external validity = ", external_impact_points[vehicle_color])
+                        # print("Vehicle impact side external validity = ", external_impact_points[vehicle_color])
                     self.vehicles[vehicle_color]["impact_point_details"]["side_coordinates"] = vehicle_side_coord.tolist()
                     self.vehicles[vehicle_color]["impact_point_details"]["reference_deformations"] = crash_impact_locations[vehicle_impact_side]
 
                     self.vehicles[vehicle_color]["vehicle_info"][vehicle_vid]["crashed"] = True
                     # impact_points.append([vehicle_color, vehicle_vid, vehicle_side, vehicle_side_coord])
-                    print("Vehicle impact side internal adjusted = ", vehicle_impact_side)
-                    print("Vehicle side coordinates = ", vehicle_side_coord)
-                    print("Possible reference deformation group = ", self.vehicles[vehicle_color]["impact_point_details"]["reference_deformations"])
+                    # print("Vehicle impact side internal adjusted = ", vehicle_impact_side)
+                    # print("Vehicle side coordinates = ", vehicle_side_coord)
+                    # print("Possible reference deformation group = ", self.vehicles[vehicle_color]["impact_point_details"]["reference_deformations"])
                     color = [(0, 255, 255), (255, 255, 0), (51, 255, 128), (128, 55, 160)]
                     cv2.circle(impact_image, tuple([int(vehicle_side_coord[0]), int(vehicle_side_coord[1])]), 6, color[i], -1)
                     # cv2.imshow("impact point on the vehicles", impact_image)

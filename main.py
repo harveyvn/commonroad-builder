@@ -173,7 +173,8 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                 color=color,
                 color_code=color_code,
                 debug_script=vehicle["trajectories"]["debug_trajectory"],
-                spheres=vehicle["trajectories"]["spheres"]
+                spheres=vehicle["trajectories"]["spheres"],
+                delay=vehicle["trajectories"]["delay"]
             )
             vh.set_speed()
             vhs.append(vh)
@@ -266,7 +267,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
             slash = Slash(original_lines)
             modified_lines = slash.simplify()
         except Exception as e:
-            print("Exception: ", e)
+            print("Overlapping Remove Exception")
             modified_lines = original_lines
 
         for i, segment in enumerate(segments):

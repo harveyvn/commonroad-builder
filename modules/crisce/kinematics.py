@@ -680,10 +680,11 @@ class Kinematics():
             #     else:
             #         diff_arc_len_time = diff_arc_len_time * 0.70
 
-            # print("Adjusted delay = ", delay)
+            # print("\Adjusted delay = ", delay)
             # # print("delay between last waypoint and crash point  =", delay_last_point)
             # # print("prim_arc_len > ref_arc_len = ", prim_arc_len > ref_arc_len)
 
+            delay_by_color = 0
             for i, traj_point in enumerate(distorted_trajectory):
                 if prim_arc_len > ref_arc_len:
                     node = {
@@ -699,10 +700,12 @@ class Kinematics():
                         'z': 0,
                         "t": i * (time_stamp) + start_time + delay  # + diff_arc_len_time, #+ delay_last_point,
                     }
+                    delay_by_color = delay
 
                 script.append(node)
 
             self.vehicles[vehicle_color]["trajectories"]["script_trajectory"] = script
+            self.vehicles[vehicle_color]["trajectories"]["delay"] = delay_by_color
             # # print("Vehicle first control point = ", script[0])
 
         t1 = time.time()

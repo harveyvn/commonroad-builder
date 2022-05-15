@@ -3,7 +3,7 @@ from shapely.geometry import Point
 
 
 class Vehicle:
-    def __init__(self, script, pos, rot, color, color_code, debug_script, spheres):
+    def __init__(self, script, pos, rot, color, color_code, debug_script, spheres, delay=0):
         self.script = script
         self.debug_script = debug_script
         self.pos = pos
@@ -12,6 +12,7 @@ class Vehicle:
         self.color_code = colors.to_rgba(list(map(float, color_code.split())))
         self.spheres = spheres
         self.speed = 0
+        self.delay = delay
 
     def obj_dict(obj):
         return obj.__dict__

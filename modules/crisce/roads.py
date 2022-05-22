@@ -57,7 +57,7 @@ class Roads():
         cv2.imwrite(self.output_folder + "{}_Contour_Viz_image.jpg".format(self.process_number), image)
         self.process_number += 1
             
-        print(" large contours = {},   small contours = {} ".format(len(large_contours), len(small_contours)))
+        # print(" large contours = {},   small contours = {} ".format(len(large_contours), len(small_contours)))
         
         return small_contours, large_contours
 
@@ -80,15 +80,15 @@ class Roads():
     
     # Midpoints of the Lane Calculation
     def midpointOfTheLane(self, image, sample_size, lane_contour):
-        print("\n")
-        print("----- Extracting the Midpoints of the Lane -----")
-        print("\n")
+        # print("\n")
+        # print("----- Extracting the Midpoints of the Lane -----")
+        # print("\n")
         midpoint_of_lane = []
         values = []
         euc_dist_bet_lanes = list()
         width_of_lane = list()
         max_road_point = (min(lane_contour[0].shape[0], lane_contour[1].shape[0]))
-        print("max_road_point for lane", max_road_point)
+        # print("max_road_point for lane", max_road_point)
         for i in range(0, max_road_point, sample_size):
             ###  Midpoint between two points = (X2+X1)^2 / (Y2+Y1)^2)
             # print("midpoints :", midpoint)
@@ -129,9 +129,9 @@ class Roads():
 
 
     def midpointOfFourWayAndTSection(self, canvas, large_contours):
-        print("\n")
-        print("----- Extracting the Midpoints of the Lane -----")
-        print("\n")
+        # print("\n")
+        # print("----- Extracting the Midpoints of the Lane -----")
+        # print("\n")
         final_midpoints_lanes = list()
         euc_dist_bet_lanes = list()
         width_of_lanes = list()
@@ -243,7 +243,7 @@ class Roads():
         number_of_lanes = len(large_contours)
         if len(final_midpoints_lanes) > number_of_lanes:
             lanes_count = list()
-            print(" final lane midpoint are larger in length ")
+            # print(" final lane midpoint are larger in length ")
             while(1):
                 for lane in final_midpoints_lanes:
                     lanes_count.append(len(lane))
@@ -329,9 +329,9 @@ class Roads():
         """
         Ordering of the midpoints of the lane
         """
-        print("\n")
-        print("----- Ordering the Midpoints of the 3 or 4 Legged Lane -----")
-        print("\n")
+        # print("\n")
+        # print("----- Ordering the Midpoints of the 3 or 4 Legged Lane -----")
+        # print("\n")
         final_ordered_midpoint = list()
         for lane_midpoints in final_midpoints_lanes:
             ## creating list for accumulation of distance of lowest distance a point has towards its side for aligning and sorting them
@@ -409,9 +409,9 @@ class Roads():
 
     def getExtrapolatedPointMidpoints(self, canvas, traverse_parameter, ordered_mid_lane):
 
-        print("\n \n ")
-        print("----- Extrapolating the lane -----")
-        print("\n \n ")
+        # print("\n \n ")
+        # print("----- Extrapolating the lane -----")
+        # print("\n \n ")
         ord_mid_lane = ordered_mid_lane.copy()
         centroid = self.centroidBetweenLanes(ord_mid_lane)
         cv2.circle(canvas, tuple(centroid), 5, (255, 0, 0), -1)
@@ -439,7 +439,8 @@ class Roads():
                         # print("point", point)
                         lane_midpoints.append(point)
                 elif change_y == 0:
-                    print("No change in y")
+                    # print("No change in y")
+                    pass
                 else:
                     for i in range(0, int(dy * 1.5), traverse_parameter):
                         point = [x, y + i]
@@ -458,7 +459,8 @@ class Roads():
                         lane_midpoints.append(point)
                         # print("point", point)
                 elif change_x == 0:  # 2
-                    print("No change in x")
+                    # print("No change in x")
+                    pass
                 else:
                     for i in range(0, int(dx), traverse_parameter):
                         point = [x + i, y]
@@ -498,7 +500,7 @@ class Roads():
 
                 rads = math.atan2(dy, dx)
                 angle = math.degrees(rads)
-                print("Angle of the lane = ", angle)
+                # print("Angle of the lane = ", angle)
                 length = neareast_point.tolist()[0]
                 extrap_point_x = int(round(point_2[0] + length * 1.1 * math.cos(angle * np.pi / 180.0)))
                 extrap_point_y = int(round(point_2[1] + length * 1.1 * math.sin(angle * np.pi / 180.0)))
@@ -580,8 +582,8 @@ class Roads():
                                car_length_sim):
         ## Read the image and create a blank mask
         image = self.pre_process.readImage(image_path=image_path)
-        print("\n------------Road-------------\n")
-        print("Image Dimensions", image.shape[:2])
+        # print("\n------------Road-------------\n")
+        # print("Image Dimensions", image.shape[:2])
         self.height, self.width = image.shape[:2]
         self.show_image = show_image
         self.output_folder = os.path.join(output_folder, "road/")
@@ -659,7 +661,7 @@ class Roads():
 
         if (len(large_contours) == 2):
             ## its a one road or lane with seperation
-            print("\nStraight or Curve road")
+            # print("\nStraight or Curve road")
             number_of_lanes = len(large_contours)
             width_of_lanes, length_of_lanes, large_lane_midpoints = self.midpointOfTheLane(road_image,
                                                                                            sample_size=round(
@@ -697,7 +699,7 @@ class Roads():
 
         elif (len(large_contours) == 3 or len(large_contours) == 4 or len(large_contours) == 5):
             ## Its T-Section road or two roads or lane with seperation
-            print("\nT-Section road or Four way road")
+            # print("\nT-Section road or Four way road")
             number_of_lanes = len(large_contours)
             ed_dist_bet_lanes, width_of_lanes, ordered_midpoints_lanes = self.midpointOfFourWayAndTSection(canvas,
                                                                                                            large_contours)

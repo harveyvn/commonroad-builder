@@ -1,5 +1,6 @@
 import json
 from typing import List
+import pathlib
 from modules.models.bng_segment import BngSegement
 from modules.crisce.vehicle import Vehicle
 from modules.common import intersect
@@ -33,15 +34,16 @@ class DataHandler:
     def roads2json(self):
         print("Number of roads: ", len(self.roads))
 
-        roads = {}
+        roads = []
         for i, road in enumerate(self.roads):
-            roads[i] = {
+            item = {
                 "left": road.left.__dict__,
                 "center": road.center.__dict__,
                 "right": road.right.__dict__,
                 "marks": [m.__dict__ for m in road.marks],
                 "width": road.width,
             }
+            roads.append(item)
 
         return roads
 
@@ -50,14 +52,18 @@ class DataHandler:
         roads = self.roads2json()
 
         data = {
+            "name": self.sketch_name,
             "roads": roads,
             "vehicles": vehicles,
             "crash_point": crash_point,
             "rot_deg": self.rot_deg
         }
 
+        # Using a JSON string
         json_string = json.dumps(data)
 
-        # Using a JSON string
-        with open(f'cases/{self.sketch_name}-data.json', 'w') as outfile:
+        # Create a folder and filename
+        pathlib.Path(f'outputs/{self.sketch_name}/').mkdir(parents=True, exist_ok=True)
+        with open(f'outputs/{self.sketch_name}/data.json', 'w') as outfile:
             outfile.write(json_string)
+        print(f'Output is written to outputs/{self.sketch_name}/ !')

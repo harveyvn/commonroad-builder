@@ -173,8 +173,10 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                 color=color,
                 color_code=color_code,
                 debug_script=vehicle["trajectories"]["debug_trajectory"],
-                spheres=vehicle["trajectories"]["spheres"]
+                spheres=vehicle["trajectories"]["spheres"],
+                delay=vehicle["trajectories"]["delay"]
             )
+            vh.set_speed()
             vhs.append(vh)
             # print(vh.color)
             # print(vh.script)
@@ -220,7 +222,12 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                 ax.plot(xs, ys, c=c, marker="x")
             return ax
 
-        SKETCH_NAME = sketch.split('/')[2]
+        try:
+            SKETCH_NAME = sketch.split('/')[2]
+        except Exception as ex:
+            SKETCH_NAME = ""
+        if platform.system() == CONST.WINDOWS:
+            SKETCH_NAME = sketch.split('\\')[2]
         print("==================================================")
         print("==================================================")
         print("==================================================")
@@ -260,7 +267,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
             slash = Slash(original_lines)
             modified_lines = slash.simplify()
         except Exception as e:
-            print("Exception: ", e)
+            print("Overlapping Remove Exception")
             modified_lines = original_lines
 
         for i, segment in enumerate(segments):
@@ -286,7 +293,7 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                          rot_deg=diff)
         dh.to_json()
 
-        fig.savefig(f'cases/{SKETCH_NAME}-visualization.png', bbox_inches="tight")
+        fig.savefig(f'outputs/{SKETCH_NAME}/viz.png', bbox_inches="tight")
     finally:
         pass
 

@@ -125,20 +125,27 @@ class Visualization:
         return ax
 
     @staticmethod
-    def draw_histogram(ax, rotated_img, xs_dict, peaks, title, show_peaks: bool = False):
+    def draw_histogram(ax, rotated_img, points, peaks, title, show_peaks: bool = False):
         # Find a histogram
         ax.title.set_text(title)
         xs = [i for i in range(0, rotated_img.shape[1])]
         ys = [0 for i in range(0, rotated_img.shape[1])]
-        for k in xs_dict:
-            ys[k] = xs_dict[k]
+
+        point_dict = {}
+        for p in points:
+            point_dict[p[0]] = p[1]
+
+        for idx, x in enumerate(xs):
+            if x in point_dict:
+                ys[idx] = point_dict[x]
+
         ax.plot(xs, ys)
-        ax.plot(peaks, [ys[x] for x in peaks], '.', color="red")
+        ax.plot([p[0] for p in peaks], [p[1] for p in peaks], '.', color="red")
 
-        print(xs_dict)
+        # print(xs_dict)
 
-        peaks_ys = [ys[x] for x in peaks]
-        p = max(peaks_ys) + 10
+        # peaks_ys = [ys[x] for x in peaks]
+        # p = max(peaks_ys) + 10
         # ax.plot([-5, 10, 10, -5, -5], [p, p, 0, 0, p], '-', color="orange")
         # ax.plot([120, 135, 135, 120, 120], [p, p, 0, 0, p], '-', color="orange")
         # ax.plot([240, 255, 255, 240, 240], [p, p, 0, 0, p], '-', color="orange")

@@ -19,6 +19,14 @@ class Winline:
 
         self.total = total
         self.zero_perc = zero_perc
+        self.peak = self.get_peaks()
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
+
+    def get_peaks(self):
+        peak = (0, 0)
+        for point in self.points:
+            if point[1] > peak[1]:
+                peak = point
+        return peak

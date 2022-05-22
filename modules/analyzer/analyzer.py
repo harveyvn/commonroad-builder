@@ -211,6 +211,17 @@ class Analyzer:
         # Grouping x-values which form a line
         groups = list(slice_when(lambda x, y: y - x > 2, list(lane_dict.keys())))
 
+        # Data for Histogram visualization
+        viz_peaks = []
+        viz_points = []
+        for group in groups:
+            for p in group:
+                wline: Winline = lane_dict[p]
+                viz_peaks.append(wline.peak)
+                viz_points = viz_points + wline.points
+        viz_images["points"] = viz_points
+        viz_images["peaks"] = viz_peaks
+
         # Define thickness
         thickness = max([len(g) for g in groups])
         # Generating corresponding lines
@@ -259,24 +270,19 @@ class Analyzer:
     def visualize(self, title: str = None, is_save: bool = False, debug: bool = False):
         # Visualization: Draw a histogram to find the starting points of lane lines
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(5, 2, figsize=(16, 24))
+        fig, ax = plt.subplots(6, 2, figsize=(16, 24))
         axs = [
             self.visualization.draw_img_with_baselines(ax[0, 0], "Step 01: Baseline"),
             self.visualization.draw_img_with_roi(ax[0, 1], "Step 02: ROI"),
             self.visualization.draw_img(ax[1, 0], viz_images["masked_img"], "Step 03: Masked"),
             self.visualization.draw_img(ax[1, 1], viz_images["crop_img"], "Step 04: Crop"),
             self.visualization.draw_img(ax[2, 0], viz_images["rotated_img"], "Step 05: Rotate"),
-            self.visualization.draw_lines_on_image(ax[2, 1], viz_images["rotated_img"], viz_images["before_rotate"],
-                                                   "Step 06", viz_images["lines"], True),
-            self.visualization.draw_lines_on_image(ax[3, 0], self.image, viz_images["after_rotate"], "Step 07",
-                                                   viz_images["lines"], True),
-            self.visualization.draw_lines_on_image(ax[3, 1], self.image, viz_images["after_rotate"], "Step 07 no image",
-                                                   viz_images["lines"]),
-            self.visualization.draw_segment_lines(ax[4, 0], viz_images["after_rotate"], "Step 08",
-                                                  viz_images["lines"], True),
-            self.visualization.draw_segment_lines(ax[4, 1], viz_images["after_rotate"], "Step 08 no image",
-                                                  viz_images["lines"])
-            # self.visualization.draw_histogram(ax[1, 2], viz_images["rotated_img"], viz_images["xs_dict"], viz_images["peaks"], "Step 06")
+            self.visualization.draw_lines_on_image(ax[2, 1], viz_images["rotated_img"], viz_images["before_rotate"], "Step 06", viz_images["lines"], True),
+            self.visualization.draw_lines_on_image(ax[3, 0], self.image, viz_images["after_rotate"], "Step 07", viz_images["lines"], True),
+            self.visualization.draw_lines_on_image(ax[3, 1], self.image, viz_images["after_rotate"], "Step 07 no image", viz_images["lines"]),
+            self.visualization.draw_segment_lines(ax[4, 0], viz_images["after_rotate"], "Step 08", viz_images["lines"], True),
+            self.visualization.draw_segment_lines(ax[4, 1], viz_images["after_rotate"], "Step 08 no image", viz_images["lines"]),
+            self.visualization.draw_histogram(ax[5, 0], viz_images["rotated_img"], viz_images["points"], viz_images["peaks"], "Histogram", show_peaks=True)
         ]
         plt.show()
         if is_save:

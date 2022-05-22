@@ -184,6 +184,13 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
         print("==================================================")
         print("==================================================\n\n")
 
+        try:
+            SKETCH_NAME = sketch.split('/')[2]
+        except Exception as ex:
+            SKETCH_NAME = ""
+        if platform.system() == CONST.WINDOWS:
+            SKETCH_NAME = sketch.split('\\')[2]
+
         print("==================================================")
         print("==================================================")
         print("EXTRACT ARROW INFORMATION")
@@ -211,8 +218,8 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
             lane_dict = analyzer.search_laneline(num_points=12)
             segment.lines = analyzer.categorize_laneline(lane_dict)
             flipped_lines = segment.flip(image.shape[0])
-            # analyzer.visualize()
             segment.get_bng_segment(flipped_lines, a_ratio)
+            analyzer.visualize(title=SKETCH_NAME, is_save=True)
 
         def render_vehicle_trajectory(ax, vehicles):
             for v in vehicles:
@@ -222,12 +229,6 @@ def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None
                 ax.plot(xs, ys, c=c, marker="x")
             return ax
 
-        try:
-            SKETCH_NAME = sketch.split('/')[2]
-        except Exception as ex:
-            SKETCH_NAME = ""
-        if platform.system() == CONST.WINDOWS:
-            SKETCH_NAME = sketch.split('\\')[2]
         print("==================================================")
         print("==================================================")
         print("==================================================")

@@ -286,7 +286,7 @@ class Analyzer:
         ]
         plt.show()
         if is_save:
-            fig.savefig(f'{title}.png', bbox_inches="tight")
+            fig.savefig(f'outputs/{title}/analyzer.png', bbox_inches="tight")
 
         if debug:
             for l in viz_images["lines"]:

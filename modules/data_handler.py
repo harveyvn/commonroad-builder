@@ -36,14 +36,14 @@ class DataHandler:
 
         roads = []
         for i, road in enumerate(self.roads):
-            item = {
+            i = {
                 "left": road.left.__dict__,
                 "center": road.center.__dict__,
                 "right": road.right.__dict__,
                 "marks": [m.__dict__ for m in road.marks],
                 "width": road.width,
             }
-            roads.append(item)
+            roads.append(i)
 
         return roads
 

@@ -36,17 +36,11 @@ def cli(ctx, log_to, debug):
 @cli.command()
 @click.option('--accident-sketch', required=True, type=click.Path(exists=True), multiple=False,
               help="Input accident sketch for generating the simulation")
-@click.option('--output-to', required=False, type=click.Path(exists=False), multiple=False,
-              help="Folder to store outputs. It will created if not present. If omitted we use the accident folder.")
-@click.option('--beamng-home', required=False, type=click.Path(exists=True), multiple=False,
-              help="Home folder of the BeamNG.research simulator")
-@click.option('--beamng-user', required=False, type=click.Path(exists=True), multiple=False,
-              help="User folder of the BeamNG.research simulator")
 @click.pass_context
-def generate(ctx, accident_sketch, output_to, beamng_home=None, beamng_user=None):
+def generate(ctx, accident_sketch):
     # Pass the context of the command down the line
     ctx.ensure_object(dict)
-    run(accident_sketch, output_to)
+    run(accident_sketch)
 
 
 # Execute the Command Line Interpreter

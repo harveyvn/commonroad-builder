@@ -34,7 +34,7 @@ from modules import DataHandler
 warnings.filterwarnings('ignore')
 
 
-def run(accident_sketch: str, output_to: str = None):
+def run(accident_sketch: str):
     try:
         sketch = os.path.join(accident_sketch, "sketch.jpeg")
         if not os.path.exists(sketch):

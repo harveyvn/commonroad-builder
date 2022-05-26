@@ -64,13 +64,12 @@ def run(accident_sketch: str):
             external_impact_points[color] = dict()
             external_impact_points[color] = impact
 
-        output_folder = output_to if output_to is not None else os.path.join(accident_sketch, "output")
+        output_folder = os.path.join(accident_sketch, "output")
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
 
         logger.debug(f"Accident sketch file {sketch}")
         logger.debug(f"External {sketch_type_external}")
-        logger.debug(f"Output to {output_folder}")
 
         # TODO ADD BEAMNG CONFIGURATIONS !
 
@@ -196,7 +195,7 @@ def run(accident_sketch: str):
             segment.lines = analyzer.categorize_laneline(lane_dict)
             flipped_lines = segment.flip(image.shape[0])
             segment.get_bng_segment(flipped_lines, a_ratio)
-            analyzer.visualize(title=SKETCH_NAME, is_save=True)
+            # analyzer.visualize(title=SKETCH_NAME, is_save=True)
 
         def render_vehicle_trajectory(ax, vehicles):
             for v in vehicles:
